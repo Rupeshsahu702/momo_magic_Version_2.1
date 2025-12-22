@@ -33,10 +33,13 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import NewOrderNotification from "@/components/admin/NewOrderNotification";
 import AdminSidebar from "@/components/admin/Sidebar";
 import defaultAvatar from "@/assets/default-avatar.svg";
 
 export default function OrderManagement() {
+  const [showNotification, setShowNotification] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(null);
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [ordersData, setOrdersData] = useState([
@@ -89,7 +92,7 @@ export default function OrderManagement() {
 
   // Handle status change
   const handleStatusChange = (orderId, newStatus) => {
-    setOrdersData(ordersData.map(order => 
+    setOrdersData(ordersData.map(order =>
       order.id === orderId ? { ...order, status: newStatus } : order
     ));
   };
@@ -150,11 +153,47 @@ export default function OrderManagement() {
   // Filter and search orders
   const filteredOrders = ordersData.filter((order) => {
     const matchesFilter = activeFilter === "all" || order.status === activeFilter;
-    const matchesSearch = 
+    const matchesSearch =
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.customer.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
+
+  const simulateNewOrder = () => {
+    const newOrder = {
+      id: "2049",
+      customer: {
+        name: "Alex M.",
+        avatar: null,
+      },
+      items: [
+        { quantity: 2, name: "Steamed Momos" },
+        { quantity: 1, name: "Coke", size: "Large" },
+      ],
+      total: 12.99,
+      status: "Pending",
+      time: "2:30 PM",
+    };
+
+    setCurrentOrder(newOrder);
+    setShowNotification(true);
+  };
+
+  const handleAcceptOrder = (order) => {
+    console.log("Accepted order:", order);
+    // Update order status to accepted
+    setShowNotification(false);
+  };
+
+  const handleViewOrder = (order) => {
+    console.log("View order:", order);
+    // Navigate to order details page
+    setShowNotification(false);
+  };
+
+  const handleClose = () => {
+    setShowNotification(false);
+  };
 
   return (
     <>
@@ -207,11 +246,10 @@ export default function OrderManagement() {
                   key={filter.key}
                   variant={activeFilter === filter.key ? "default" : "ghost"}
                   onClick={() => setActiveFilter(filter.key)}
-                  className={`${
-                    activeFilter === filter.key
+                  className={`${activeFilter === filter.key
                       ? "bg-orange-500 text-white hover:bg-orange-600"
                       : "text-gray-600 hover:text-orange-500 hover:bg-orange-50"
-                  }`}
+                    }`}
                 >
                   {filter.icon && <filter.icon className="h-4 w-4 mr-2" />}
                   {filter.label}
@@ -233,23 +271,30 @@ export default function OrderManagement() {
               </Button>
 
               {/* New Order Button */}
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button onClick={simulateNewOrder} className="bg-orange-500 hover:bg-orange-600 text-white">
                 <Plus className="h-4 w-4 mr-2" />
                 New Order
               </Button>
+              <NewOrderNotification
+                order={currentOrder}
+                isOpen={showNotification}
+                onAccept={handleAcceptOrder}
+                onView={handleViewOrder}
+                onClose={handleClose}
+              />
             </div>
           </div>
 
+          {/* Orders Table */}
           {/* Orders Table */}
           <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200 hover:bg-orange-50/50 bg-orange-50">
                   <TableHead className="text-gray-700 font-semibold">ORDER ID</TableHead>
+                  <TableHead className="text-gray-700 font-semibold">TABLE NO.</TableHead>
                   <TableHead className="text-gray-700 font-semibold">CUSTOMER</TableHead>
-                  <TableHead className="text-gray-700 font-semibold">
-                    ITEMS SUMMARY
-                  </TableHead>
+                  <TableHead className="text-gray-700 font-semibold">MENU ITEMS</TableHead>
                   <TableHead className="text-gray-700 font-semibold">TOTAL</TableHead>
                   <TableHead className="text-gray-700 font-semibold">STATUS</TableHead>
                   <TableHead className="text-gray-700 font-semibold">DATE & TIME</TableHead>
@@ -267,6 +312,16 @@ export default function OrderManagement() {
                     <TableCell className="font-medium text-orange-600">
                       {order.id}
                     </TableCell>
+
+                    {/* Table Number */}
+                    <TableCell>
+                      <div className="flex items-center justify-center">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-semibold">
+                          Table {order.tableNumber || "N/A"}
+                        </Badge>
+                      </div>
+                    </TableCell>
+
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -284,10 +339,32 @@ export default function OrderManagement() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-gray-700">{order.items}</TableCell>
+
+                    {/* Menu Items - Show All Items */}
+                    <TableCell>
+                      <div className="space-y-1 max-w-xs">
+                        {order.menuItems && order.menuItems.length > 0 ? (
+                          order.menuItems.map((item, index) => (
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              <Badge variant="secondary" className="bg-gray-100 text-gray-700 text-xs">
+                                {item.quantity}x
+                              </Badge>
+                              <span className="text-gray-700">{item.name}</span>
+                              {item.size && (
+                                <span className="text-gray-500 text-xs">({item.size})</span>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-gray-500 text-sm">{order.items}</span>
+                        )}
+                      </div>
+                    </TableCell>
+
                     <TableCell className="text-gray-900 font-semibold">
                       {order.total}
                     </TableCell>
+
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -296,21 +373,21 @@ export default function OrderManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleStatusChange(order.id, "pending")}
                             className={order.status === "pending" ? "bg-yellow-50" : ""}
                           >
                             <Clock className="h-4 w-4 mr-2 text-yellow-700" />
                             <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Pending</Badge>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleStatusChange(order.id, "preparing")}
                             className={order.status === "preparing" ? "bg-orange-50" : ""}
                           >
                             <Flame className="h-4 w-4 mr-2 text-orange-700" />
                             <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100">Preparing</Badge>
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleStatusChange(order.id, "served")}
                             className={order.status === "served" ? "bg-green-50" : ""}
                           >
@@ -318,7 +395,7 @@ export default function OrderManagement() {
                             <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">Served</Badge>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleStatusChange(order.id, "cancelled")}
                             className={order.status === "cancelled" ? "bg-red-50" : ""}
                           >
@@ -328,9 +405,11 @@ export default function OrderManagement() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
+
                     <TableCell className="text-gray-700 text-sm">
                       {order.date.toLocaleDateString()} {order.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </TableCell>
+
                     <TableCell className="text-gray-600 text-right">
                       {order.time}
                     </TableCell>
@@ -365,7 +444,9 @@ export default function OrderManagement() {
             </div>
           </div>
         </div>
+
       </div>
+
     </>
   );
 }

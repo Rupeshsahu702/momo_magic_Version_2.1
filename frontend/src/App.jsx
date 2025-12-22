@@ -21,6 +21,8 @@ import AddItem from '@/pages/admin/AddItem'
 import AddNewEmployee from '@/pages/admin/AddNewEmployee'
 import AddNewInventory from '@/pages/admin/AddNewInventory'
 import Profile from '@/pages/admin/Profile'
+import EditMenu from './pages/admin/EditMenu'
+import EditEmployee from './pages/admin/EditEmployee'
 
 function App() {
   return (
@@ -39,10 +41,12 @@ function App() {
         <Route path='orders' element={<OrderManagement />} />
         <Route path='menu' element={<MenuManagement />} />
         <Route path='menu/add' element={<AddItem />} />
+        <Route path='/admin/menu/edit/:id' element={<EditMenu/>} />
         <Route path='inventory' element={<InventoryManagement />} />
         <Route path='inventory/add' element={<AddNewInventory />} />
         <Route path='employees' element={<EmployeeManagement />} />
         <Route path='employees/add' element={<AddNewEmployee />} />
+        <Route path='/admin/employees/edit/:id' element={<EditEmployee/>} />
         <Route path='profile' element={<Profile />} />
       </Route>
     </Routes>

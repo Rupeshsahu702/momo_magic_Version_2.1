@@ -1,6 +1,6 @@
 // src/pages/MenuManagement.jsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -30,7 +30,13 @@ import {
   MoreVertical,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
+  Pencil,
+  Trash2,
 } from "lucide-react";
+import DeleteMenuItemModal from "@/components/admin/DeleteMenuItemModal";
+
 import AdminSidebar from "@/components/admin/Sidebar";
 import steam1 from "@/assets/steam-1.webp";
 import steam2 from "@/assets/steam-2.webp";
@@ -39,12 +45,16 @@ import steam3 from "@/assets/steam-3.webp";
 import cocaCola from "@/assets/cocacola.webp";
 
 export default function MenuManagement() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState("list"); // 'list' or 'grid'
+  const [viewMode, setViewMode] = useState("list");
   const [selectedItems, setSelectedItems] = useState([]);
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Menu items data
-  const menuItems = [
+  // Menu items data with state
+  const [menuItems, setMenuItems] = useState([
     {
       id: 1,
       name: "Steamed Chicken Momo",
@@ -95,22 +105,57 @@ export default function MenuManagement() {
       lastUpdated: "1 week ago",
       image: cocaCola,
     },
-  ];
+  ]);
 
-  // Get availability badge
-  const getAvailabilityBadge = (availability) => {
-    if (availability === "In Stock") {
-      return (
-        <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">
-          <span className="mr-1">●</span> In Stock
-        </Badge>
-      );
-    }
-    return (
-      <Badge variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-100">
-        <span className="mr-1">○</span> Out of Stock
-      </Badge>
+  // Handle availability change
+  const handleAvailabilityChange = (itemId, newAvailability) => {
+    setMenuItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === itemId ? { ...item, availability: newAvailability } : item
+      )
     );
+
+    console.log(`Updated item ${itemId} availability to: ${newAvailability}`);
+    // TODO: Call API to update availability
+  };
+
+  // Get select trigger style based on availability
+  const getAvailabilityClass = (availability) => {
+    return availability === "In Stock"
+      ? "border-green-500 bg-green-50 text-green-700 hover:bg-green-100"
+      : "border-red-500 bg-red-50 text-red-700 hover:bg-red-100";
+  };
+
+  const toggleRowMenu = (id) => {
+    setActiveMenuId((prev) => (prev === id ? null : id));
+  };
+
+  const handleHideItem = (item) => {
+    console.log("Hide item", item);
+    setActiveMenuId(null);
+  };
+
+  const handleEditItem = (item) => {
+    navigate(`/admin/menu/edit/${item.id}`, { state: { item } });
+    setActiveMenuId(null);
+  };
+
+  const handleDeleteItem = (item) => {
+    setItemToDelete(item);
+    setDeleteModalOpen(true);
+    setActiveMenuId(null);
+  };
+
+  const confirmDelete = () => {
+    console.log("Delete item:", itemToDelete);
+    setMenuItems((prev) => prev.filter((item) => item.id !== itemToDelete.id));
+    setDeleteModalOpen(false);
+    setItemToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalOpen(false);
+    setItemToDelete(null);
   };
 
   // Get category badge
@@ -309,12 +354,85 @@ export default function MenuManagement() {
                     <TableCell className="font-semibold text-gray-900">
                       {item.price}
                     </TableCell>
-                    <TableCell>{getAvailabilityBadge(item.availability)}</TableCell>
+                    
+                    {/* Availability - Dropdown */}
+                    <TableCell>
+                      <Select
+                        value={item.availability}
+                        onValueChange={(value) => handleAvailabilityChange(item.id, value)}
+                      >
+                        <SelectTrigger className={`w-40 ${getAvailabilityClass(item.availability)}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="In Stock">
+                            <span className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                              In Stock
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="Out of Stock">
+                            <span className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                              Out of Stock
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+
                     <TableCell className="text-gray-600">{item.lastUpdated}</TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon">
+                    <TableCell className="text-right relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => toggleRowMenu(item.id)}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
+
+                      {activeMenuId === item.id && (
+                        <>
+                          {/* Backdrop overlay */}
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => setActiveMenuId(null)}
+                          />
+
+                          {/* Popup menu */}
+                          <div className="absolute right-0 top-10 w-44 rounded-lg bg-gray-900 shadow-2xl border border-gray-700 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            {/* Hide */}
+                            <button
+                              type="button"
+                              onClick={() => handleHideItem(item)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-100 hover:bg-gray-800 transition-colors"
+                            >
+                              <EyeOff className="h-4 w-4" />
+                              <span>Hide</span>
+                            </button>
+
+                            {/* Edit */}
+                            <button
+                              type="button"
+                              onClick={() => handleEditItem(item)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-100 hover:bg-gray-800 transition-colors border-t border-gray-800"
+                            >
+                              <Pencil className="h-4 w-4" />
+                              <span>Edit</span>
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteItem(item)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors border-t border-gray-800"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -356,6 +474,14 @@ export default function MenuManagement() {
           </div>
         </div>
       </div>
+
+      {/* Delete Menu Item Modal */}
+      <DeleteMenuItemModal
+        item={itemToDelete}
+        isOpen={deleteModalOpen}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
     </>
   );
 }

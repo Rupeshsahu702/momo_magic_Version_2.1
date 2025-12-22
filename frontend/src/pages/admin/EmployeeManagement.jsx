@@ -7,6 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Card, CardContent } from "../../components/ui/card";
 import { SidebarTrigger } from "../../components/ui/sidebar";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "../../components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -26,17 +33,54 @@ import {
     Mail,
     Phone,
     DownloadCloud,
+    Pencil,
+    Trash2,
 } from "lucide-react";
+
 import AdminSidebar from "@/components/admin/Sidebar";
-import { Link } from "react-router-dom";
+import DeleteEmployeeModal from "@/components/admin/DeleteEmployeeModal";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function EmployeeManagement() {
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState("");
     const [activeRole, setActiveRole] = useState("all");
     const [activeStatus, setActiveStatus] = useState("all");
+    const [activeMenuId, setActiveMenuId] = useState(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [employeeToDelete, setEmployeeToDelete] = useState(null);
 
-    // Employee data
-    const employees = [
+    const confirmDelete = () => {
+        console.log("Delete employee:", employeeToDelete);
+        setEmployees((prev) => prev.filter((emp) => emp.id !== employeeToDelete.id));
+        setDeleteModalOpen(false);
+        setEmployeeToDelete(null);
+    };
+
+    const cancelDelete = () => {
+        setDeleteModalOpen(false);
+        setEmployeeToDelete(null);
+    };
+
+    // Add these handlers after your other functions
+    const toggleRowMenu = (id) => {
+        setActiveMenuId((prev) => (prev === id ? null : id));
+    };
+
+    // In EmployeeManagement.jsx, update the handleEditEmployee function:
+    const handleEditEmployee = (employee) => {
+        navigate(`/admin/employees/edit/${employee.id}`, { state: { employee } });
+        setActiveMenuId(null);
+    };
+
+    const handleRemoveEmployee = (employee) => {
+        setEmployeeToDelete(employee);
+        setDeleteModalOpen(true);
+        setActiveMenuId(null);
+    };
+
+    // Employee data with state management
+    const [employees, setEmployees] = useState([
         {
             id: 1,
             name: "Sarah Chen",
@@ -90,10 +134,22 @@ export default function EmployeeManagement() {
             email: "david@momo.com",
             phone: "+1 (555) 444-2222",
             attendance: [true, true, false, true, true],
-            status: "present",
+            status: "half-day",
             avatar: null,
         },
-    ];
+    ]);
+
+    // Handle attendance change
+    const handleAttendanceChange = (employeeId, newStatus) => {
+        setEmployees((prevEmployees) =>
+            prevEmployees.map((emp) =>
+                emp.id === employeeId ? { ...emp, status: newStatus } : emp
+            )
+        );
+
+        // TODO: Send API request to update attendance
+        console.log(`Updated employee ${employeeId} attendance to: ${newStatus}`);
+    };
 
     // Stats
     const stats = [
@@ -109,7 +165,7 @@ export default function EmployeeManagement() {
             icon: CheckCircle2,
             iconBg: "bg-orange-500",
             label: "Present Today",
-            value: 18,
+            value: employees.filter(e => e.status === "present").length,
             badge: "95%",
             badgeColor: "bg-orange-500/20 text-orange-400",
         },
@@ -117,7 +173,7 @@ export default function EmployeeManagement() {
             icon: Calendar,
             iconBg: "bg-red-500",
             label: "On Leave",
-            value: 2,
+            value: employees.filter(e => e.status === "absent").length,
             badge: "",
             badgeColor: "",
         },
@@ -133,8 +189,10 @@ export default function EmployeeManagement() {
 
     // Status filters
     const statusFilters = [
-        { key: "all", label: "Present", color: "text-orange-500" },
+        { key: "all", label: "All", color: "text-gray-600" },
+        { key: "present", label: "Present", color: "text-orange-500" },
         { key: "absent", label: "Absent", color: "text-red-500" },
+        { key: "half-day", label: "Half Day", color: "text-yellow-500" },
     ];
 
     // Filter employees based on role and status
@@ -165,13 +223,23 @@ export default function EmployeeManagement() {
         const a = document.createElement('a');
         a.href = url;
         const now = new Date();
-        const filename = `employees-${now.toISOString().slice(0,10)}.csv`;
+        const filename = `employees-${now.toISOString().slice(0, 10)}.csv`;
         a.setAttribute('download', filename);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     }
+
+    // Get select trigger style based on status
+    const getSelectTriggerClass = (status) => {
+        const classes = {
+            present: "border-green-500 bg-green-50 text-green-700 hover:bg-green-100",
+            absent: "border-red-500 bg-red-50 text-red-700 hover:bg-red-100",
+            "half-day": "border-yellow-500 bg-yellow-50 text-yellow-700 hover:bg-yellow-100",
+        };
+        return classes[status] || "border-gray-300";
+    };
 
     return (
         <>
@@ -215,8 +283,6 @@ export default function EmployeeManagement() {
                             >
                                 <Settings className="h-5 w-5" />
                             </Button>
-
-                            
                         </div>
                     </div>
                 </header>
@@ -276,8 +342,8 @@ export default function EmployeeManagement() {
                                     variant={activeRole === filter.key ? "default" : "ghost"}
                                     onClick={() => setActiveRole(filter.key)}
                                     className={`${activeRole === filter.key
-                                            ? "bg-orange-500 text-white hover:bg-orange-600"
-                                            : "text-gray-600 hover:text-orange-500 hover:bg-orange-50"
+                                        ? "bg-orange-500 text-white hover:bg-orange-600"
+                                        : "text-gray-600 hover:text-orange-500 hover:bg-orange-50"
                                         }`}
                                 >
                                     {filter.label}
@@ -294,8 +360,8 @@ export default function EmployeeManagement() {
                                     variant="ghost"
                                     onClick={() => setActiveStatus(filter.key)}
                                     className={`${activeStatus === filter.key
-                                            ? filter.color + " bg-gray-100"
-                                            : "text-gray-500 hover:bg-gray-100"
+                                        ? filter.color + " bg-gray-100"
+                                        : "text-gray-500 hover:bg-gray-100"
                                         }`}
                                 >
                                     <span className="mr-2">●</span>
@@ -383,40 +449,81 @@ export default function EmployeeManagement() {
                                             </div>
                                         </TableCell>
 
-                                        {/* Today's Attendance */}
+                                        {/* Today's Attendance - Dropdown */}
                                         <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    className={`${employee.status === "present"
-                                                            ? "bg-orange-500 hover:bg-orange-600"
-                                                            : "bg-gray-300 hover:bg-gray-400"
-                                                        } text-white`}
-                                                >
-                                                    Present
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    variant="outline"
-                                                    className={`${employee.status === "absent"
-                                                            ? "bg-red-500 border-red-500 text-white hover:bg-red-600"
-                                                            : "border-gray-300 text-gray-700 hover:bg-gray-100"
-                                                        }`}
-                                                >
-                                                    Absent
-                                                </Button>
-                                            </div>
+                                            <Select
+                                                value={employee.status}
+                                                onValueChange={(value) => handleAttendanceChange(employee.id, value)}
+                                            >
+                                                <SelectTrigger className={`w-36 ${getSelectTriggerClass(employee.status)}`}>
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="present">
+                                                        <span className="flex items-center gap-2">
+                                                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                                                            Present
+                                                        </span>
+                                                    </SelectItem>
+                                                    <SelectItem value="absent">
+                                                        <span className="flex items-center gap-2">
+                                                            <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                                                            Absent
+                                                        </span>
+                                                    </SelectItem>
+                                                    <SelectItem value="half-day">
+                                                        <span className="flex items-center gap-2">
+                                                            <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
+                                                            Half Day
+                                                        </span>
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </TableCell>
 
                                         {/* Actions */}
-                                        <TableCell>
+                                        <TableCell className="text-right relative">
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
+                                                onClick={() => toggleRowMenu(employee.id)}
                                                 className="text-gray-600 hover:text-orange-500 hover:bg-orange-50"
                                             >
                                                 <MoreVertical className="h-4 w-4" />
                                             </Button>
+
+                                            {activeMenuId === employee.id && (
+                                                <>
+                                                    {/* Backdrop overlay */}
+                                                    <div
+                                                        className="fixed inset-0 z-10"
+                                                        onClick={() => setActiveMenuId(null)}
+                                                    />
+
+                                                    {/* Popup menu */}
+                                                    <div className="absolute right-0 top-10 w-44 rounded-lg bg-gray-900 shadow-2xl border border-gray-700 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                                        {/* Edit */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleEditEmployee(employee)}
+                                                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-100 hover:bg-gray-800 transition-colors"
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                            <span>Edit</span>
+                                                        </button>
+
+                                                        {/* Remove */}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveEmployee(employee)}
+                                                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-gray-800 hover:text-red-300 transition-colors border-t border-gray-800"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                            <span>Remove</span>
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -425,6 +532,14 @@ export default function EmployeeManagement() {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Employee Modal */}
+            <DeleteEmployeeModal
+                employee={employeeToDelete}
+                isOpen={deleteModalOpen}
+                onConfirm={confirmDelete}
+                onCancel={cancelDelete}
+            />
         </>
     );
 }

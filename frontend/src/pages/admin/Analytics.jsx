@@ -1,11 +1,16 @@
 // src/pages/Analytics.jsx
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { Badge } from "../../components/ui/badge";
-import { Avatar, AvatarFallback } from "../../components/ui/avatar";
-import { Button } from "../../components/ui/button";
 import { SidebarTrigger } from "../../components/ui/sidebar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { 
   Wallet, 
   ShoppingBag, 
@@ -15,15 +20,16 @@ import {
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import RevenueChart from "@/components/admin/RevenueChart";
-import BarChart from "@/components/admin/BarChart";
-import CustomerActivityChart from "@/components/admin/CustomerActivity";
-
+import LineChart from "@/components/admin/LineChart";
+import PeakOrderBarChart from "@/components/admin/PeakOrderBarChart";
+import HorizontalBarChart from "@/components/admin/HorizontalBarChart";
 
 export default function Analytics() {
   const [activeTab, setActiveTab] = useState("today");
+  const [revenueTimeframe, setRevenueTimeframe] = useState("today");
+  const [customersTimeframe, setCustomersTimeframe] = useState("date-wise");
 
-
-  // Stats data
+  // Stats data with circular progress
   const stats = [
     {
       icon: Wallet,
@@ -33,6 +39,7 @@ export default function Analytics() {
       isPositive: true,
       iconBg: "bg-orange-100",
       iconColor: "text-orange-600",
+      progress: 75,
     },
     {
       icon: ShoppingBag,
@@ -42,6 +49,7 @@ export default function Analytics() {
       isPositive: true,
       iconBg: "bg-orange-100",
       iconColor: "text-orange-600",
+      progress: 60,
     },
     {
       icon: TrendingUp,
@@ -51,115 +59,147 @@ export default function Analytics() {
       isPositive: true,
       iconBg: "bg-green-100",
       iconColor: "text-green-600",
+      progress: 45,
     },
     {
       icon: Users,
-      label: "Active Employees",
-      value: "8",
-      change: "0%",
-      isPositive: null,
-      iconBg: "bg-purple-100",
-      iconColor: "text-purple-600",
+      label: "Customer Repeat Rate",
+      value: "45%",
+      change: "+4%",
+      isPositive: true,
+      iconBg: "bg-orange-100",
+      iconColor: "text-orange-600",
+      progress: 45,
     },
   ];
 
+  // Top 5 Most-Selling Items
+  const topSellingData = {
+    labels: ['Chicken Momo', 'Veg Momo', 'Paneer Momo', 'Fried Momo'],
+    values: [80, 65, 90, 45],
+  };
 
-  // Most sold items
-  const mostSoldItems = [
-    {
-      name: "Steam Chicken Momo",
-      count: 482,
-      percentage: 85,
-    },
-    {
-      name: "Spicy Jhol Momo",
-      count: 354,
-      percentage: 62,
-    },
-    {
-      name: "Coke (500ml)",
-      count: 201,
-      percentage: 35,
-    },
+  // Top 5 Least-Selling Items
+  const leastSellingItems = [
+    { name: "Plain rice", count: 130, maxCount: 130 },
+    { name: "Water bottle", count: 100, maxCount: 130 },
+    { name: "Salad", count: 50, maxCount: 130 },
+    { name: "Soup", count: 34, maxCount: 130 },
+    { name: "Plain momo", count: 18, maxCount: 130 },
   ];
 
-
-  // Peak order times data - Updated format for BarChart component
-  const peakOrderTimesData = [
-    { label: "12p", value: 45 },
-    { label: "3p", value: 95 },
-    { label: "6p", value: 65 },
-    { label: "9p", value: 78 },
+  // Popular Food Item Combos
+  const foodCombos = [
+    { name: "Momo Platter + Coke", count: 482, maxCount: 482 },
+    { name: "Jhol Momo + Soup", count: 134, maxCount: 482 },
+    { name: "Veg Momo + Coke", count: 18, maxCount: 482 },
+    { name: "Momo Platter + Soup", count: 18, maxCount: 482 },
+    { name: "Paneer Momo + Coke", count: 17, maxCount: 482 },
   ];
 
+  // New Customers Data
+  const newCustomersData = {
+    labels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    values: [35, 48, 52, 58, 65, 70, 62],
+  };
+
+  // Recent Customer Activity
+  const recentActivity = [
+    {
+      customer: "Alex Chen",
+      orderType: "Delivery",
+      items: "1,230",
+      order: "Stuan Chicken Momo",
+      status: "Dine-in",
+      amount: "$45.00",
+    },
+  ];
 
   return (
-    <div className="flex min-h-screen w-full">
-      <AdminSidebar/>
-      <div className="flex-1">
+    <>
+      <AdminSidebar />
+      <div className="flex-1 bg-gray-50 min-h-screen">
         {/* Header */}
-        <header className="sticky top-0 z-10 flex items-center gap-4 border-b bg-background px-6 py-4">
+        <header className="sticky top-0 z-10 flex items-center gap-4 border-b bg-white px-6 py-4">
           <SidebarTrigger />
-          <h1 className="text-2xl font-semibold">Analytics Dashboard (Admin)</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Analytics Overview</h1>
+            <p className="text-sm text-gray-500">Real-time performance metrics</p>
+          </div>
+
+          {/* Time Period Tabs */}
+          <div className="ml-auto">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="bg-gray-100">
+                <TabsTrigger
+                  value="today"
+                  className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
+                >
+                  Today
+                </TabsTrigger>
+                <TabsTrigger value="week">This Week</TabsTrigger>
+                <TabsTrigger value="month">This Month</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </header>
-        
+
         {/* Page Content */}
-        <div className="p-8">
+        <div className="p-6">
           <div className="space-y-6">
-            {/* Header Section */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-3xl font-bold">Analytics Overview</h2>
-                <p className="text-muted-foreground">Real-time performance metrics</p>
-              </div>
-              
-              {/* Time Period Tabs */}
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList>
-                  <TabsTrigger 
-                    value="today"
-                    className="data-[state=active]:bg-orange-500 data-[state=active]:text-white"
-                  >
-                    Today
-                  </TabsTrigger>
-                  <TabsTrigger value="week">This Week</TabsTrigger>
-                  <TabsTrigger value="month">This Month</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-
-            {/* Stats Cards */}
+            {/* Stats Cards with Circular Progress */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               {stats.map((stat, index) => {
                 const Icon = stat.icon;
+                const circumference = 2 * Math.PI * 28;
+                const strokeDashoffset = circumference - (stat.progress / 100) * circumference;
+
                 return (
-                  <Card key={index}>
+                  <Card key={index} className="relative overflow-hidden">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-start justify-between">
                         <div className={`p-3 rounded-lg ${stat.iconBg}`}>
                           <Icon className={`h-5 w-5 ${stat.iconColor}`} />
                         </div>
-                        {stat.isPositive !== null && (
-                          <Badge
-                            variant="secondary"
-                            className={`${
-                              stat.isPositive
-                                ? "bg-red-50 text-red-600 hover:bg-red-50"
-                                : "bg-green-50 text-green-600 hover:bg-green-50"
-                            }`}
-                          >
-                            {stat.isPositive && <ArrowUp className="h-3 w-3 mr-1" />}
-                            {stat.change}
-                          </Badge>
-                        )}
-                        {stat.isPositive === null && (
-                          <Badge variant="secondary">{stat.change}</Badge>
-                        )}
+                        <Badge
+                          variant="secondary"
+                          className="bg-red-50 text-red-600 hover:bg-red-50"
+                        >
+                          <ArrowUp className="h-3 w-3 mr-1" />
+                          {stat.change}
+                        </Badge>
                       </div>
-                      <div className="mt-4">
-                        <p className="text-sm text-muted-foreground">{stat.label}</p>
-                        <p className="text-2xl font-bold mt-1">{stat.value}</p>
+                      <div className="mt-4 flex items-end justify-between">
+                        <div>
+                          <p className="text-sm text-gray-500">{stat.label}</p>
+                          <p className="text-3xl font-bold mt-1">{stat.value}</p>
+                        </div>
+                        {/* Circular Progress */}
+                        <div className="relative w-16 h-16">
+                          <svg className="w-16 h-16 -rotate-90">
+                            <circle
+                              cx="32"
+                              cy="32"
+                              r="28"
+                              stroke="currentColor"
+                              strokeWidth="5"
+                              fill="none"
+                              className="text-gray-200"
+                            />
+                            <circle
+                              cx="32"
+                              cy="32"
+                              r="28"
+                              stroke="currentColor"
+                              strokeWidth="5"
+                              fill="none"
+                              strokeDasharray={circumference}
+                              strokeDashoffset={strokeDashoffset}
+                              className="text-orange-500 transition-all duration-500"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -167,99 +207,222 @@ export default function Analytics() {
               })}
             </div>
 
-
-            {/* Revenue Chart and Most Sold Items */}
+            {/* Enhanced Revenue Visualization and New Customers */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Revenue vs Costs Chart */}
-              <RevenueChart/>
-
-
-              {/* Most Sold Items */}
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Most Sold Items</CardTitle>
-                    <Button variant="link" className="text-orange-500 hover:text-orange-600">
-                      View Menu
-                    </Button>
+                    <div>
+                      <CardTitle>Enhanced Revenue Visualization</CardTitle>
+                      <p className="text-sm text-gray-500 mt-1">Revenue vs Costs</p>
+                      <p className="text-xs text-gray-400">
+                        Revenue collected in the last 24 hours
+                      </p>
+                    </div>
+                    <Select value={revenueTimeframe} onValueChange={setRevenueTimeframe}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="today">Today</SelectItem>
+                        <SelectItem value="week">This Week</SelectItem>
+                        <SelectItem value="month">This Month</SelectItem>
+                        <SelectItem value="custom">Custom</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {mostSoldItems.map((item, index) => (
-                      <div key={index} className="flex items-center gap-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="bg-orange-200 text-orange-700 font-semibold">
-                            {item.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
+                  <RevenueChart height={280} />
+                </CardContent>
+              </Card>
+
+              {/* New Customers per Day */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>New Customers per Day</CardTitle>
+                    <Select value={customersTimeframe} onValueChange={setCustomersTimeframe}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-wise">Date-wise</SelectItem>
+                        <SelectItem value="week">Weekly</SelectItem>
+                        <SelectItem value="month">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <LineChart data={newCustomersData} height={280} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Top/Least Selling Items and Combos */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Top 5 Most-Selling Items */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Top 5 Most-Selling Items</CardTitle>
+                    <Select defaultValue="date-wise">
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-wise">Date-wise</SelectItem>
+                        <SelectItem value="week">Weekly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <HorizontalBarChart data={topSellingData} height={220} />
+                </CardContent>
+              </Card>
+
+              {/* Top 5 Least-Selling Items */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Top 5 Least-Selling Items</CardTitle>
+                    <Select defaultValue="date-wise">
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-wise">Date-wise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {leastSellingItems.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3">
                         <div className="flex-1">
-                          <p className="font-medium">{item.name}</p>
+                          <p className="text-sm font-medium">{item.name}</p>
                           <div className="mt-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-orange-500 rounded-full transition-all"
-                              style={{ width: `${item.percentage}%` }}
+                              className="h-full bg-orange-500 rounded-full"
+                              style={{ width: `${(item.count / item.maxCount) * 100}%` }}
                             ></div>
                           </div>
                         </div>
-                        <span className="font-semibold text-lg">{item.count}</span>
+                        <span className="text-sm font-semibold text-gray-700 min-w-[3ch]">
+                          {item.count}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
-            </div>
 
-
-            {/* Peak Order Times and Customer Activity */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              {/* Peak Order Times - Using BarChart Component */}
+              {/* Popular Food Item Combos */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Peak Order Times</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">Popular Food Item Combos</CardTitle>
+                    <Select defaultValue="date-wise">
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="date-wise">Date-wise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <BarChart 
-                    data={peakOrderTimesData} 
-                    height={400}
-                    highlightMax={true}
-                    showLabel={true}
-                  />
-                </CardContent>
-              </Card>
-
-
-              {/* Recent Customer Activity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Customer Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CustomerActivityChart />
-                  
-                  {/* Activity List */}
-                  <div className="mt-6 space-y-3 pt-4 border-t">
-                    {[1, 2, 3].map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="bg-orange-100">U{i + 1}</AvatarFallback>
-                        </Avatar>
+                  <div className="space-y-3">
+                    {foodCombos.map((combo, index) => (
+                      <div key={index} className="flex items-center gap-3">
                         <div className="flex-1">
-                          <p className="text-sm font-medium">Order #{1234 + i}</p>
-                          <p className="text-xs text-muted-foreground">2 mins ago</p>
+                          <p className="text-sm font-medium">{combo.name}</p>
+                          <div className="mt-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-orange-500 rounded-full"
+                              style={{ width: `${(combo.count / combo.maxCount) * 100}%` }}
+                            ></div>
+                          </div>
                         </div>
-                        <Badge variant="outline">
-                          {i === 0 ? "Dine-in" : "Delivery"}
-                        </Badge>
+                        <span className="text-sm font-semibold text-gray-700 min-w-[3ch]">
+                          {combo.count}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* Peak Order Times */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Peak Order Times</CardTitle>
+                  <Badge className="bg-orange-500 text-white hover:bg-orange-600">Today</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <PeakOrderBarChart height={200} />
+              </CardContent>
+            </Card>
+
+            {/* Recent Customer Activity */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Recent Customer Activity</CardTitle>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-orange-500"></span>
+                      <span>Dine-in (65%)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-blue-500"></span>
+                      <span>Delivery (35%)</span>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b text-left text-sm text-gray-500">
+                        <th className="pb-3 font-medium">CUSTOMER</th>
+                        <th className="pb-3 font-medium">ORDER TYPE</th>
+                        <th className="pb-3 font-medium">ITEMS</th>
+                        <th className="pb-3 font-medium">STATUS</th>
+                        <th className="pb-3 font-medium">AMOUNT</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentActivity.map((activity, index) => (
+                        <tr key={index} className="border-b">
+                          <td className="py-3">{activity.customer}</td>
+                          <td className="py-3">{activity.items}</td>
+                          <td className="py-3">{activity.order}</td>
+                          <td className="py-3">
+                            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+                              {activity.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3">{activity.amount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
