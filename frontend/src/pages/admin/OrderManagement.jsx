@@ -44,50 +44,113 @@ export default function OrderManagement() {
   const [searchQuery, setSearchQuery] = useState("");
   const [ordersData, setOrdersData] = useState([
     {
-      id: "#2048",
-      customer: { name: "Sarah J.", avatar: null },
-      items: "Chicken Momo...",
-      total: "$12.50",
-      status: "preparing",
-      time: "5 mins ago",
-      date: new Date(Date.now() - 5 * 60000),
+    id: "#2049",
+    tableNumber: 12, // Add table number
+    customer: {
+      name: "Alex Chen",
+      avatar: null,
     },
-    {
-      id: "#2047",
-      customer: { name: "Mike R.", avatar: null },
-      items: "Veggie Pattar...",
-      total: "$22.00",
-      status: "served",
-      time: "15 mins ago",
-      date: new Date(Date.now() - 15 * 60000),
+    // Replace 'items' string with 'menuItems' array
+    menuItems: [
+      { quantity: 2, name: "Steamed Chicken Momo", size: null },
+      { quantity: 1, name: "Coke", size: "Large" },
+      { quantity: 1, name: "Mango Lassi", size: null },
+    ],
+    items: "2x Steamed Momos, 1x Coke (Large)", // Keep as fallback
+    total: "$24.50",
+    status: "preparing",
+    date: new Date(),
+    time: "5m ago",
+  },
+  {
+    id: "#2048",
+    tableNumber: 8,
+    customer: {
+      name: "Sarah Johnson",
+      avatar: null,
     },
-    {
-      id: "#2046",
-      customer: { name: "Guest User", avatar: null },
-      items: "Cheese Momos",
-      total: "$8.00",
-      status: "cancelled",
-      time: "20 mins ago",
-      date: new Date(Date.now() - 20 * 60000),
+    menuItems: [
+      { quantity: 3, name: "Fried Veg Momo", size: null },
+      { quantity: 2, name: "Spring Rolls", size: null },
+    ],
+    items: "3x Fried Veg Momo, 2x Spring Rolls",
+    total: "$18.99",
+    status: "pending",
+    date: new Date(),
+    time: "12m ago",
+  },
+  {
+    id: "#2049",
+    tableNumber: 12, // Add table number
+    customer: {
+      name: "Alex Chen",
+      avatar: null,
     },
-    {
-      id: "#2045",
-      customer: { name: "Emily W.", avatar: null },
-      items: "Fried Momos",
-      total: "$14.00",
-      status: "pending",
-      time: "25 mins ago",
-      date: new Date(Date.now() - 25 * 60000),
+    // Replace 'items' string with 'menuItems' array
+    menuItems: [
+      { quantity: 2, name: "Steamed Chicken Momo", size: null },
+      { quantity: 1, name: "Coke", size: "Large" },
+      { quantity: 1, name: "Mango Lassi", size: null },
+    ],
+    items: "2x Steamed Momos, 1x Coke (Large)", // Keep as fallback
+    total: "$24.50",
+    status: "preparing",
+    date: new Date(),
+    time: "5m ago",
+  },
+  {
+    id: "#2048",
+    tableNumber: 8,
+    customer: {
+      name: "Sarah Johnson",
+      avatar: null,
     },
-    {
-      id: "#2044",
-      customer: { name: "David K.", avatar: null },
-      items: "Combo Meal A...",
-      total: "$18.50",
-      status: "served",
-      time: "32 mins ago",
-      date: new Date(Date.now() - 32 * 60000),
+    menuItems: [
+      { quantity: 3, name: "Fried Veg Momo", size: null },
+      { quantity: 2, name: "Spring Rolls", size: null },
+    ],
+    items: "3x Fried Veg Momo, 2x Spring Rolls",
+    total: "$18.99",
+    status: "pending",
+    date: new Date(),
+    time: "12m ago",
+  },
+  {
+    id: "#2049",
+    tableNumber: 12, // Add table number
+    customer: {
+      name: "Alex Chen",
+      avatar: null,
     },
+    // Replace 'items' string with 'menuItems' array
+    menuItems: [
+      { quantity: 2, name: "Steamed Chicken Momo", size: null },
+      { quantity: 1, name: "Coke", size: "Large" },
+      { quantity: 1, name: "Mango Lassi", size: null },
+    ],
+    items: "2x Steamed Momos, 1x Coke (Large)", // Keep as fallback
+    total: "$24.50",
+    status: "preparing",
+    date: new Date(),
+    time: "5m ago",
+  },
+  {
+    id: "#2048",
+    tableNumber: 8,
+    customer: {
+      name: "Sarah Johnson",
+      avatar: null,
+    },
+    menuItems: [
+      { quantity: 3, name: "Fried Veg Momo", size: null },
+      { quantity: 2, name: "Spring Rolls", size: null },
+    ],
+    items: "3x Fried Veg Momo, 2x Spring Rolls",
+    total: "$18.99",
+    status: "pending",
+    date: new Date(),
+    time: "12m ago",
+  },
   ]);
 
   // Handle status change
