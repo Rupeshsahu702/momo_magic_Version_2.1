@@ -1,13 +1,17 @@
-// Bill.jsx
-import React, { useRef } from "react";
+// Bill.jsx - Displays order receipt with print, download, and pay bill functionality
+import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Download, Printer, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Download, Printer, X, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
 import Barcode from "react-barcode";
 
-const Bill = ({ orderData, onClose }) => {
+const Bill = ({ orderData, onClose, onPayBill, billingStatus = 'unpaid' }) => {
   const billRef = useRef();
+  const [isPaymentRequested, setIsPaymentRequested] = useState(
+    billingStatus === 'pending_payment' || billingStatus === 'paid'
+  );
 
   if (!orderData || !orderData.items || orderData.items.length === 0) {
     return null;
@@ -21,9 +25,21 @@ const Bill = ({ orderData, onClose }) => {
     window.print();
   };
 
+  // Handle pay bill request - notifies admin that customer is ready to pay
+  const handlePayBill = async () => {
+    if (onPayBill && !isPaymentRequested) {
+      try {
+        await onPayBill();
+        setIsPaymentRequested(true);
+      } catch (error) {
+        console.error('Error requesting payment:', error);
+      }
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-md">
+    <div className="fixed inset-0 z-50 pt-10 flex items-center justify-center bg-black/50 p-4">
+      <div className="relative w-full max-w-md mt-10">
         <Button
           size="icon"
           variant="ghost"
@@ -134,8 +150,28 @@ const Bill = ({ orderData, onClose }) => {
             >
               <span className="text-sm font-bold uppercase">TOTAL</span>
               <span className="text-xl font-bold">
-                ${orderData.total.toFixed(2)}
+                ₹{orderData.total.toFixed(2)}
               </span>
+            </div>
+
+            {/* Payment Status Badge */}
+            <div className="mb-4 flex justify-center">
+              {billingStatus === 'paid' ? (
+                <Badge className="bg-green-500 text-white text-sm px-4 py-1.5 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  PAID
+                </Badge>
+              ) : billingStatus === 'pending_payment' ? (
+                <Badge className="bg-orange-500 text-white text-sm px-4 py-1.5 flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  AWAITING PAYMENT
+                </Badge>
+              ) : (
+                <Badge className="bg-red-500 text-white text-sm px-4 py-1.5 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  UNPAID
+                </Badge>
+              )}
             </div>
 
             <p
@@ -158,22 +194,49 @@ const Bill = ({ orderData, onClose }) => {
           </div>
         </Card>
 
-        <div className="mt-4 flex justify-center gap-3">
-          <Button
-            variant="outline"
-            className="rounded-full border-white bg-white/90 text-[#1a1a1a] hover:bg-white"
-            onClick={handlePrint}
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Print
-          </Button>
-          <Button
-            className="rounded-full bg-[#ff7a3c] hover:bg-[#ff6825]"
-            onClick={handleDownload}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download
-          </Button>
+        <div className="mt-4 flex flex-col items-center gap-3">
+          {/* Pay Bill Button - Primary action */}
+          {onPayBill && (
+            <Button
+              className={`w-full rounded-full px-6 py-3 font-bold transition-all ${isPaymentRequested
+                ? "bg-green-600 hover:bg-green-600 cursor-default"
+                : "bg-green-500 hover:bg-green-600"
+                }`}
+              onClick={handlePayBill}
+              disabled={isPaymentRequested}
+            >
+              {isPaymentRequested ? (
+                <>
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                  Payment Request Sent!
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pay Bill
+                </>
+              )}
+            </Button>
+          )}
+
+          {/* Secondary actions */}
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="rounded-full border-white bg-white/90 text-[#1a1a1a] hover:bg-white"
+              onClick={handlePrint}
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print
+            </Button>
+            <Button
+              className="rounded-full bg-[#ff7a3c] hover:bg-[#ff6825]"
+              onClick={handleDownload}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download
+            </Button>
+          </div>
         </div>
       </div>
 

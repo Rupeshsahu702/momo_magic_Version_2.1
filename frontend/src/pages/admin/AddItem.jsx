@@ -1,4 +1,8 @@
-// src/pages/AddNewItem.jsx
+// src/pages/AddItem.jsx
+/**
+ * Add Item Page - Admin interface for creating new menu items.
+ * Submits new items to the database via menuService.
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../../components/ui/input";
@@ -7,7 +11,6 @@ import { Textarea } from "../../components/ui/textarea";
 import { Switch } from "../../components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 import { Label } from "../../components/ui/label";
-import { Checkbox } from "../../components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -17,45 +20,132 @@ import {
 } from "../../components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { SidebarTrigger } from "../../components/ui/sidebar";
-import { 
-  ChevronRight, 
-  Upload, 
+import {
+  ChevronRight,
+  Upload,
   Info,
-  Flame,
   Check,
   FileText,
   Sliders,
   Image,
   CheckCircle,
+  Loader2,
+  Leaf,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
+import menuService from "@/services/menuService";
+import uploadService from "@/services/uploadService";
+import { toast } from "sonner";
 
 export default function AddItem() {
   const navigate = useNavigate();
-  const [itemName, setItemName] = useState("");
-  const [price, setPrice] = useState("");
+
+  // Form state
+  const [productName, setProductName] = useState("");
+  const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [spiciness, setSpiciness] = useState("mild");
-  const [inStock, setInStock] = useState(true);
-  const [stockManagement, setStockManagement] = useState("unlimited");
+  const [rating, setRating] = useState("0");
+  const [isVeg, setIsVeg] = useState(true);
+  const [availability, setAvailability] = useState(true);
+  const [imageLink, setImageLink] = useState("");
   const [imageFile, setImageFile] = useState(null);
-  const [dietaryTags, setDietaryTags] = useState([]);
+  const [imagePreview, setImagePreview] = useState(null);
 
-  // Handle image upload
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(URL.createObjectURL(file));
+  // Submission state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Handle image upload - uploads to R2 and gets public URL
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Set preview immediately for UX
+    setImagePreview(URL.createObjectURL(file));
+    setImageFile(file);
+    setError(null);
+
+    try {
+      setIsUploadingImage(true);
+
+      // Upload to R2 and get public URL
+      const uploadedImageUrl = await uploadService.uploadImage(file);
+
+      // Set the image URL in the form
+      setImageLink(uploadedImageUrl);
+
+      toast.success('Image uploaded successfully!');
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      setError(error.message || 'Failed to upload image. Please try again.');
+      toast.error(error.message || 'Failed to upload image');
+
+      // Clear preview on error
+      setImagePreview(null);
+      setImageFile(null);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
-  // Handle dietary tag toggle
-  const handleDietaryTag = (tag) => {
-    if (dietaryTags.includes(tag)) {
-      setDietaryTags(dietaryTags.filter((t) => t !== tag));
-    } else {
-      setDietaryTags([...dietaryTags, tag]);
+  // Validate form before submission
+  const validateForm = () => {
+    if (!productName.trim()) {
+      setError("Please enter a product name");
+      return false;
+    }
+    if (!amount || parseFloat(amount) <= 0) {
+      setError("Please enter a valid price");
+      return false;
+    }
+    if (!category) {
+      setError("Please select a category");
+      return false;
+    }
+    return true;
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    setError(null);
+
+    if (!validateForm()) {
+      return;
+    }
+
+    // Check if image is still uploading
+    if (isUploadingImage) {
+      setError('Please wait for the image to finish uploading');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const menuItemData = {
+        productName: productName.trim(),
+        description: description.trim(),
+        amount: parseFloat(amount),
+        category,
+        rating: parseFloat(rating) || 0,
+        isVeg,
+        imageLink: imageLink.trim(), // Already contains R2 URL if image was uploaded
+        availability
+      };
+
+      await menuService.createMenuItem(menuItemData);
+
+      // Success - navigate back to menu management
+      toast.success('Menu item created successfully!');
+      navigate("/admin/menu");
+    } catch (error) {
+      console.error("Error creating menu item:", error);
+      setError(error.response?.data?.message || "Failed to create menu item. Please try again.");
+      toast.error("Failed to create menu item");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -71,7 +161,12 @@ export default function AddItem() {
               <div>
                 {/* Breadcrumb */}
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                  <span className="hover:text-orange-500 cursor-pointer">Menu Management</span>
+                  <span
+                    className="hover:text-orange-500 cursor-pointer"
+                    onClick={() => navigate("/admin/menu")}
+                  >
+                    Menu Management
+                  </span>
                   <ChevronRight className="h-4 w-4" />
                   <span className="text-orange-500">Add New Item</span>
                 </div>
@@ -84,14 +179,36 @@ export default function AddItem() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => navigate("/admin/menu")}>Cancel</Button>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                <Check className="h-4 w-4 mr-2" />
-                Publish Item
+              <Button variant="outline" onClick={() => navigate("/admin/menu")} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Publish Item
+                  </>
+                )}
               </Button>
             </div>
           </div>
         </header>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mx-6 mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
+            {error}
+          </div>
+        )}
 
         {/* Content */}
         <div className="p-6">
@@ -109,14 +226,14 @@ export default function AddItem() {
                 <CardContent className="space-y-4">
                   {/* Item Name */}
                   <div>
-                    <Label htmlFor="itemName" className="text-sm font-medium">
-                      Item Name
+                    <Label htmlFor="productName" className="text-sm font-medium">
+                      Item Name <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      id="itemName"
+                      id="productName"
                       placeholder="e.g. Schezwan Chicken Momos"
-                      value={itemName}
-                      onChange={(e) => setItemName(e.target.value)}
+                      value={productName}
+                      onChange={(e) => setProductName(e.target.value)}
                       className="mt-1"
                     />
                   </div>
@@ -124,19 +241,21 @@ export default function AddItem() {
                   {/* Price and Category */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="price" className="text-sm font-medium">
-                        Price ($)
+                      <Label htmlFor="amount" className="text-sm font-medium">
+                        Price (₹) <span className="text-red-500">*</span>
                       </Label>
                       <div className="relative mt-1">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                          $
+                          ₹
                         </span>
                         <Input
-                          id="price"
+                          id="amount"
                           type="number"
+                          step="0.01"
+                          min="0"
                           placeholder="0.00"
-                          value={price}
-                          onChange={(e) => setPrice(e.target.value)}
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
                           className="pl-7"
                         />
                       </div>
@@ -144,17 +263,27 @@ export default function AddItem() {
 
                     <div>
                       <Label htmlFor="category" className="text-sm font-medium">
-                        Category
+                        Category <span className="text-red-500">*</span>
                       </Label>
                       <Select value={category} onValueChange={setCategory}>
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="momos">Momos</SelectItem>
-                          <SelectItem value="sides">Sides</SelectItem>
-                          <SelectItem value="drinks">Drinks</SelectItem>
-                          <SelectItem value="desserts">Desserts</SelectItem>
+                          <SelectItem value="Momos">Momos</SelectItem>
+                          <SelectItem value="Tandoori Momos">Tandoori Momos</SelectItem>
+                          <SelectItem value="Special Momos">Special Momos</SelectItem>
+                          <SelectItem value="Noodles">Noodles</SelectItem>
+                          <SelectItem value="Rice">Rice</SelectItem>
+                          <SelectItem value="Soups">Soups</SelectItem>
+                          <SelectItem value="Sizzlers">Sizzlers</SelectItem>
+                          <SelectItem value="Chinese Starters">Chinese Starters</SelectItem>
+                          <SelectItem value="Moburg">Moburg</SelectItem>
+                          <SelectItem value="Pasta">Pasta</SelectItem>
+                          <SelectItem value="Maggi">Maggi</SelectItem>
+                          <SelectItem value="Special Dishes">Special Dishes</SelectItem>
+                          <SelectItem value="Beverages">Beverages</SelectItem>
+                          <SelectItem value="Desserts">Desserts</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -189,90 +318,58 @@ export default function AddItem() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Spiciness Level */}
+                  {/* Veg/Non-Veg Toggle */}
                   <div>
                     <Label className="text-sm font-medium mb-3 block">
-                      Spiciness Level
+                      Food Type <span className="text-red-500">*</span>
                     </Label>
-                    <RadioGroup value={spiciness} onValueChange={setSpiciness}>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="mild" id="mild" />
+                    <RadioGroup value={isVeg ? "veg" : "nonveg"} onValueChange={(val) => setIsVeg(val === "veg")}>
+                      <div className="flex items-center gap-4">
+                        <div className={`flex items-center space-x-2 px-4 py-3 rounded-lg border cursor-pointer transition-colors ${isVeg ? "bg-green-50 border-green-300" : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}>
+                          <RadioGroupItem value="veg" id="veg" />
                           <Label
-                            htmlFor="mild"
-                            className="font-normal cursor-pointer flex items-center gap-1"
+                            htmlFor="veg"
+                            className="font-normal cursor-pointer flex items-center gap-2"
                           >
-                            Mild
+                            <Leaf className="h-4 w-4 text-green-600" />
+                            <span className={isVeg ? "text-green-700 font-medium" : ""}>Vegetarian</span>
                           </Label>
                         </div>
 
-                        <div className="flex items-center space-x-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg">
-                          <RadioGroupItem value="medium" id="medium" />
+                        <div className={`flex items-center space-x-2 px-4 py-3 rounded-lg border cursor-pointer transition-colors ${!isVeg ? "bg-red-50 border-red-300" : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}>
+                          <RadioGroupItem value="nonveg" id="nonveg" />
                           <Label
-                            htmlFor="medium"
-                            className="font-normal cursor-pointer flex items-center gap-1 text-orange-700"
+                            htmlFor="nonveg"
+                            className="font-normal cursor-pointer flex items-center gap-2"
                           >
-                            <Flame className="h-4 w-4" />
-                            Medium
-                          </Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="hot" id="hot" />
-                          <Label
-                            htmlFor="hot"
-                            className="font-normal cursor-pointer flex items-center gap-1"
-                          >
-                            <Flame className="h-4 w-4 text-red-500" />
-                            Hot
-                          </Label>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="extra-hot" id="extra-hot" />
-                          <Label
-                            htmlFor="extra-hot"
-                            className="font-normal cursor-pointer flex items-center gap-1"
-                          >
-                            <Flame className="h-4 w-4 text-red-600" />
-                            <Flame className="h-4 w-4 text-red-600 -ml-2" />
-                            Extra Hot
+                            <span className="h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+                              <span className="h-2 w-2 rounded-full bg-white"></span>
+                            </span>
+                            <span className={!isVeg ? "text-red-700 font-medium" : ""}>Non-Vegetarian</span>
                           </Label>
                         </div>
                       </div>
                     </RadioGroup>
                   </div>
 
-                  {/* Dietary Tags */}
+                  {/* Rating */}
                   <div>
-                    <Label className="text-sm font-medium mb-3 block">
-                      Dietary Tags
+                    <Label htmlFor="rating" className="text-sm font-medium">
+                      Initial Rating (0-5)
                     </Label>
-                    <div className="flex items-center gap-3">
-                      {["Vegetarian", "Vegan", "Gluten Free", "Contains Nuts"].map((tag) => (
-                        <div
-                          key={tag}
-                          className={`flex items-center space-x-2 px-4 py-2 rounded-lg border cursor-pointer transition-colors ${
-                            dietaryTags.includes(tag)
-                              ? "bg-orange-50 border-orange-300"
-                              : "bg-white border-gray-200 hover:border-gray-300"
-                          }`}
-                          onClick={() => handleDietaryTag(tag)}
-                        >
-                          <Checkbox
-                            id={tag}
-                            checked={dietaryTags.includes(tag)}
-                            onCheckedChange={() => handleDietaryTag(tag)}
-                          />
-                          <Label
-                            htmlFor={tag}
-                            className="font-normal cursor-pointer"
-                          >
-                            {tag}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
+                    <Input
+                      id="rating"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      placeholder="0"
+                      value={rating}
+                      onChange={(e) => setRating(e.target.value)}
+                      className="mt-1 w-32"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -288,7 +385,23 @@ export default function AddItem() {
                     Item Image
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  {/* Image URL Input */}
+                  <div>
+                    <Label htmlFor="imageLink" className="text-sm font-medium">
+                      Image URL
+                    </Label>
+                    <Input
+                      id="imageLink"
+                      type="url"
+                      placeholder="https://example.com/image.jpg"
+                      value={imageLink}
+                      onChange={(e) => setImageLink(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+
+                  {/* Preview or Upload */}
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-orange-400 transition-colors">
                     <input
                       type="file"
@@ -296,30 +409,43 @@ export default function AddItem() {
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
+                      disabled={isUploadingImage}
                     />
-                    {imageFile ? (
+                    {imagePreview || imageLink ? (
                       <div className="relative">
                         <img
-                          src={imageFile}
+                          src={imagePreview || imageLink}
                           alt="Preview"
                           className="w-full h-48 object-cover rounded-lg"
+                          onError={(e) => {
+                            e.target.src = "/images/special_dishes.png";
+                          }}
                         />
+                        {isUploadingImage && (
+                          <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                            <div className="text-center text-white">
+                              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                              <p className="text-sm">Uploading...</p>
+                            </div>
+                          </div>
+                        )}
                         <Button
                           variant="secondary"
                           size="sm"
                           onClick={() => document.getElementById("imageUpload").click()}
                           className="mt-3 w-full"
+                          disabled={isUploadingImage}
                         >
-                          Change Image
+                          {isUploadingImage ? 'Uploading...' : 'Change Image'}
                         </Button>
                       </div>
                     ) : (
                       <label htmlFor="imageUpload" className="cursor-pointer">
                         <Upload className="h-12 w-12 mx-auto text-orange-400 mb-3" />
                         <p className="font-medium text-gray-700">Click to upload</p>
-                        <p className="text-sm text-gray-500">or drag and drop here</p>
+                        <p className="text-sm text-gray-500">or enter URL above</p>
                         <p className="text-xs text-gray-400 mt-2">
-                          JPG, PNG (MAX. 5MB)
+                          JPG, PNG, GIF, WebP (MAX. 5MB)
                         </p>
                       </label>
                     )}
@@ -352,40 +478,7 @@ export default function AddItem() {
                         Item is visible to customers
                       </p>
                     </div>
-                    <Switch checked={inStock} onCheckedChange={setInStock} />
-                  </div>
-
-                  {/* Stock Management */}
-                  <div>
-                    <Label className="text-sm font-medium mb-3 block">
-                      Stock Management
-                    </Label>
-                    <RadioGroup
-                      value={stockManagement}
-                      onValueChange={setStockManagement}
-                    >
-                      <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                        <RadioGroupItem value="unlimited" id="unlimited" />
-                        <Label
-                          htmlFor="unlimited"
-                          className="font-normal cursor-pointer flex-1"
-                        >
-                          <span className="flex items-center gap-2">
-                            <span className="font-medium">Unlimited</span>
-                          </span>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-2 p-3 border rounded-lg">
-                        <RadioGroupItem value="daily-limit" id="daily-limit" />
-                        <Label
-                          htmlFor="daily-limit"
-                          className="font-normal cursor-pointer flex-1"
-                        >
-                          <span className="font-medium">Daily Limit</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
+                    <Switch checked={availability} onCheckedChange={setAvailability} />
                   </div>
                 </CardContent>
               </Card>

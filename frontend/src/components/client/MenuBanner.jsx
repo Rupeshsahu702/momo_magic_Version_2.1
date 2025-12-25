@@ -33,7 +33,7 @@ const MenuBanner = () => {
               {/* Description */}
               <p className="max-w-md text-sm leading-relaxed text-[#d1cec9]">
                 12pc Mixed Platter + Large Coke for just{" "}
-                <span className="font-bold text-white">$12.99</span>. Taste the
+                <span className="font-bold text-white">₹12.99</span>. Taste the
                 spice of the Himalayas!
               </p>
 

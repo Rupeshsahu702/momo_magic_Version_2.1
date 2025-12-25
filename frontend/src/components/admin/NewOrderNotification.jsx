@@ -122,7 +122,7 @@ export default function NewOrderNotification({ order, onAccept, onView, onClose,
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
               <div className="text-center flex-1">
                 <p className="text-gray-500 text-xs uppercase">Total</p>
-                <p className="text-white font-bold">${order.total?.toFixed(2)}</p>
+                <p className="text-white font-bold">₹{order.total?.toFixed(2)}</p>
               </div>
               <div className="text-center flex-1">
                 <p className="text-gray-500 text-xs uppercase">Status</p>

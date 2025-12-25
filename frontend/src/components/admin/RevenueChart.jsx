@@ -86,8 +86,8 @@ export default function RevenueChart({ height = 300 }) {
           size: 13,
         },
         callbacks: {
-          label: function(context) {
-            return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+          label: function (context) {
+            return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString();
           }
         }
       },
@@ -112,8 +112,8 @@ export default function RevenueChart({ height = 300 }) {
           font: {
             size: 11,
           },
-          callback: function(value) {
-            return '$' + value.toLocaleString();
+          callback: function (value) {
+            return '₹' + value.toLocaleString();
           }
         },
       },

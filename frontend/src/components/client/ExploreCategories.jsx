@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import steam1 from "@/assets/steam-1.png";
 import steam2 from "@/assets/steam-2.png";
 import steam3 from "@/assets/steam-3.png";
@@ -18,8 +18,42 @@ import {
   Plus,
   Minus,
   ArrowRight,
+  Soup,
+  Beef,
+  Pizza,
+  IceCream,
+  Coffee,
+  UtensilsCrossed,
+  ChefHat,
+  Loader2,
 } from "lucide-react";
-import { useCart } from "@/context/CartContext"; // Add this import
+import { useCart } from "@/context/CartContext";
+import menuService from "@/services/menuService";
+
+// Icon mapping for categories
+const categoryIconMap = {
+  "Momos": Flame,
+  "Tandoori Momos": Cookie,
+  "Special Momos": ChefHat,
+  "Noodles": UtensilsCrossed,
+  "Rice": Box,
+  "Soups": Soup,
+  "Sizzlers": Beef,
+  "Chinese Starters": Snowflake,
+  "Moburg": Sandwich,
+  "Pasta": Pizza,
+  "Maggi": Flame,
+  "Special Dishes": ChefHat,
+  "Beverages": Wine,
+  "Desserts": IceCream,
+  // Legacy/old categories
+  "Steamed": Flame,
+  "Fried": Cookie,
+  "Chili": Snowflake,
+  "Burgers": Sandwich,
+  "Shakes": Box,
+  "Combos": Grid3x3,
+};
 
 // Menu data organized by category
 const menuData = {
@@ -68,7 +102,7 @@ const menuData = {
       description: "Golden fried chicken momos with spicy dipping sauce.",
       price: 6.99,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
     {
@@ -77,7 +111,7 @@ const menuData = {
       description: "Crispy fried paneer momos with mint chutney.",
       price: 5.99,
       rating: 4.7,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -86,7 +120,7 @@ const menuData = {
       description: "Crispy vegetable momos tossed in schezwan sauce.",
       price: 5.49,
       rating: 4.8,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -95,7 +129,7 @@ const menuData = {
       description: "Traditional buff momos deep fried to perfection.",
       price: 7.49,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
   ],
@@ -106,7 +140,7 @@ const menuData = {
       description: "Steamed momos wok-tossed in spicy chili sauce.",
       price: 7.99,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
     {
@@ -115,7 +149,7 @@ const menuData = {
       description: "Vegetable momos in Indo-Chinese chili gravy.",
       price: 6.49,
       rating: 4.6,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -124,7 +158,7 @@ const menuData = {
       description: "Paneer momos in spicy garlic chili sauce.",
       price: 6.99,
       rating: 4.8,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -133,7 +167,7 @@ const menuData = {
       description: "Fiery schezwan sauce with tender chicken momos.",
       price: 8.49,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
   ],
@@ -144,7 +178,7 @@ const menuData = {
       description: "Fried momo patty with special sauce in sesame bun.",
       price: 8.99,
       rating: 4.7,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
     {
@@ -153,7 +187,7 @@ const menuData = {
       description: "Grilled chicken with jalapenos and cheese.",
       price: 9.49,
       rating: 4.8,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
     {
@@ -162,7 +196,7 @@ const menuData = {
       description: "Crispy veg momo patty with tangy sauces.",
       price: 7.99,
       rating: 4.6,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -171,7 +205,7 @@ const menuData = {
       description: "Grilled paneer tikka with mint mayo.",
       price: 8.49,
       rating: 4.7,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
   ],
@@ -182,7 +216,7 @@ const menuData = {
       description: "Fresh mango blended with creamy milk.",
       price: 4.99,
       rating: 4.8,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -191,7 +225,7 @@ const menuData = {
       description: "Rich chocolate shake with crushed oreos.",
       price: 5.49,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -200,7 +234,7 @@ const menuData = {
       description: "Fresh strawberries with vanilla ice cream.",
       price: 5.29,
       rating: 4.7,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -209,7 +243,7 @@ const menuData = {
       description: "Chilled coffee with ice cream and chocolate syrup.",
       price: 4.79,
       rating: 4.8,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
   ],
@@ -220,7 +254,7 @@ const menuData = {
       description: "Refreshing lime with soda and mint.",
       price: 2.99,
       rating: 4.6,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -229,7 +263,7 @@ const menuData = {
       description: "Traditional Indian spiced tea.",
       price: 2.49,
       rating: 4.7,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -238,7 +272,7 @@ const menuData = {
       description: "Chilled tea with lemon and mint.",
       price: 3.49,
       rating: 4.5,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -247,7 +281,7 @@ const menuData = {
       description: "Spiced yogurt drink with curry leaves.",
       price: 2.99,
       rating: 4.6,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
   ],
@@ -258,7 +292,7 @@ const menuData = {
       description: "8 steamed momos + fries + soft drink.",
       price: 12.99,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
     {
@@ -267,7 +301,7 @@ const menuData = {
       description: "16 momos (mixed) + 2 shakes + chili sauce.",
       price: 24.99,
       rating: 4.8,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
     {
@@ -276,7 +310,7 @@ const menuData = {
       description: "12 veg momos + spring rolls + beverage.",
       price: 15.99,
       rating: 4.7,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: true,
     },
     {
@@ -285,26 +319,51 @@ const menuData = {
       description: "10 momos + 2 burgers + 2 shakes.",
       price: 22.99,
       rating: 4.9,
-      image: "/api/placeholder/240/240",
+      image: "/images/special_dishes.png",
       isVeg: false,
     },
   ],
 };
 
-const categories = [
-  { name: "Steamed", icon: Flame },
-  { name: "Fried", icon: Cookie },
-  { name: "Chili", icon: Snowflake },
-  { name: "Burgers", icon: Sandwich },
-  { name: "Shakes", icon: Box },
-  { name: "Beverages", icon: Wine },
-  { name: "Combos", icon: Grid3x3 },
-];
-
+// Note: Categories are now fetched dynamically from the backend
+// The static categories array has been removed
 
 const ExploreCategories = () => {
   const [selectedCategory, setSelectedCategory] = useState("Steamed");
-  const { addToCart, removeFromCart, getItemQuantity } = useCart(); // Use cart context
+  const [categories, setCategories] = useState([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const { addToCart, removeFromCart, getItemQuantity } = useCart();
+
+  // Fetch available categories on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoadingCategories(true);
+        const availableCategories = await menuService.fetchAvailableCategories();
+
+        // Map categories to include icons
+        const categoriesWithIcons = availableCategories.map(cat => ({
+          name: cat,
+          icon: categoryIconMap[cat] || UtensilsCrossed // Fallback icon
+        }));
+
+        setCategories(categoriesWithIcons);
+
+        // Set first category as selected if available
+        if (categoriesWithIcons.length > 0 && !selectedCategory) {
+          setSelectedCategory(categoriesWithIcons[0].name);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        // Fallback to empty array on error
+        setCategories([]);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+
+    loadCategories();
+  }, []); // Empty dependency array - fetch once on mount
 
   const getFilteredItems = () => {
     if (selectedCategory === "All") {
@@ -336,26 +395,34 @@ const ExploreCategories = () => {
 
         {/* Category Tabs */}
         <div className="mb-12 flex flex-wrap gap-3">
-          {categories.map((category) => {
-            const Icon = category.icon;
-            const isActive = selectedCategory === category.name;
+          {isLoadingCategories ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm">Loading categories...</span>
+            </div>
+          ) : categories.length === 0 ? (
+            <p className="text-gray-500 text-sm">No categories available</p>
+          ) : (
+            categories.map((category) => {
+              const Icon = category.icon;
+              const isActive = selectedCategory === category.name;
 
-            return (
-              <Button
-                key={category.name}
-                variant={isActive ? "default" : "outline"}
-                className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
-                  isActive
+              return (
+                <Button
+                  key={category.name}
+                  variant={isActive ? "default" : "outline"}
+                  className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${isActive
                     ? "bg-[#ff7a3c] text-white hover:bg-[#ff6825]"
                     : "border-[#e0e0e0] text-[#6b7280] hover:border-[#ff7a3c] hover:text-[#ff7a3c]"
-                }`}
-                onClick={() => setSelectedCategory(category.name)}
-              >
-                <Icon className="mr-2 h-4 w-4" />
-                {category.name}
-              </Button>
-            );
-          })}
+                    }`}
+                  onClick={() => setSelectedCategory(category.name)}
+                >
+                  <Icon className="mr-2 h-4 w-4" />
+                  {category.name}
+                </Button>
+              );
+            })
+          )}
         </div>
 
         {/* Popular Now Section */}
@@ -366,10 +433,10 @@ const ExploreCategories = () => {
               {selectedCategory === "All"
                 ? "All dishes from our kitchen"
                 : selectedCategory === "Veg"
-                ? "Delicious vegetarian options"
-                : selectedCategory === "Non-Veg"
-                ? "Non-vegetarian favorites"
-                : "Top rated dishes from our kitchen"}
+                  ? "Delicious vegetarian options"
+                  : selectedCategory === "Non-Veg"
+                    ? "Non-vegetarian favorites"
+                    : "Top rated dishes from our kitchen"}
             </p>
           </div>
           <Button
@@ -434,7 +501,7 @@ const ExploreCategories = () => {
                     {/* Price and Add Button */}
                     <div className="flex items-center justify-between">
                       <span className="text-lg font-bold text-[#1a1a1a]">
-                        ${item.price}
+                        ₹{item.price}
                       </span>
 
                       {/* Conditional Rendering: Plus button or Minus-Count-Plus */}

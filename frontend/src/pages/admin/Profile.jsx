@@ -1,5 +1,5 @@
 // src/pages/Profile.jsx
-import { useState } from "react";
+import { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
@@ -21,20 +21,35 @@ import {
   Save,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
+import AuthContext from "@/context/AuthContext";
 
 export default function Profile() {
-  const [fullName, setFullName] = useState("Amit Patel");
-  const [roleTitle, setRoleTitle] = useState("Store Manager");
-  const [contactNumber, setContactNumber] = useState("+1 (555) 123-4567");
+  const { admin } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const [fullName, setFullName] = useState("");
+  const [roleTitle, setRoleTitle] = useState("");
+  const [contactNumber, setContactNumber] = useState("");
+  const [emailAddress, setEmailAddress] = useState("");
+
+  // Initialize state when admin data is available
+  useEffect(() => {
+    if (admin) {
+      setFullName(admin.name || "");
+      setRoleTitle(admin.position || "");
+      setContactNumber(admin.phoneNumber || "");
+      setEmailAddress(admin.email || "");
+    }
+  }, [admin]);
+
   const [dailyReports, setDailyReports] = useState(true);
-  const [emailAddress, setEmailAddress] = useState("amit.patel@momomagic.com");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [emailVerified, setEmailVerified] = useState(false);
+  // NOTE: setEmailVerified will be used when email verification feature is implemented
+  const [emailVerified, _setEmailVerified] = useState(false);
 
-  const navigate = useNavigate();
 
   // Handle profile photo upload
   const handlePhotoUpload = (e) => {
@@ -43,6 +58,10 @@ export default function Profile() {
       setProfilePhoto(URL.createObjectURL(file));
     }
   };
+
+  if (!admin) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <>
@@ -102,16 +121,16 @@ export default function Profile() {
                   {/* User Info */}
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-xl font-bold text-gray-900">Amit Patel</h2>
+                      <h2 className="text-xl font-bold text-gray-900">{fullName}</h2>
                       <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
                         STORE ADMIN
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600">
-                      Store Manager - Downtown Branch
+                      {roleTitle || "Staff Member"}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Member since March 2021
+                      Member since {admin.createdAt ? new Date(admin.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -289,23 +308,7 @@ export default function Profile() {
             </Card>
           </div>
 
-          {/* Danger Zone */}
-          <Card className="bg-white mt-6 border-red-200">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Momo Magic Cafe © 2024</p>
-                </div>
-                <Button
-                  variant="outline"
-                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Deactivate Account
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+
         </div>
       </div>
     </>
