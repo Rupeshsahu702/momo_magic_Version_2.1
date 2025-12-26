@@ -1,14 +1,16 @@
 // MyCart.jsx
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Minus, Trash2, ArrowRight, Tag } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, ArrowRight, Tag, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
-import OrderConfirmation from "@/components/client/OrderConfirmation"; // Add this import
-import { toast } from "sonner"; // Optional: for notifications
+import CustomerAuthContext from "@/context/CustomerAuthContext";
+import OrderConfirmation from "@/components/client/OrderConfirmation";
+import CustomerLoginModal from "@/components/client/CustomerLoginModal";
+import { toast } from "sonner";
 
 const MyCart = () => {
   const {
@@ -21,15 +23,18 @@ const MyCart = () => {
     placeOrder,
   } = useCart();
 
-  const [promoCode, setPromoCode] = useState("");
-  const [showOrderDialog, setShowOrderDialog] = useState(false); // Add this
+  const { isAuthenticated } = useContext(CustomerAuthContext);
 
-  const { subtotal, tax, deliveryFee, total } = calculateTotals();
+  const [promoCode, setPromoCode] = useState("");
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  const { subtotal, tax, total } = calculateTotals();
   const totalItems = getTotalItems();
 
   const handleApplyPromo = () => {
     console.log("Applying promo code:", promoCode);
-    toast.success("Promo code applied!"); // Optional
+    toast.success("Promo code applied!");
   };
 
   const handlePlaceOrder = () => {
@@ -37,18 +42,31 @@ const MyCart = () => {
       toast.error("Your cart is empty!");
       return;
     }
+
+    // Check if customer is authenticated
+    if (!isAuthenticated) {
+      toast.info("Please log in to place an order");
+      setShowLoginModal(true);
+      return;
+    }
+
     setShowOrderDialog(true);
   };
 
-  const handleOrderPlaced = (orderData) => {
-    // Save order to context
-    placeOrder(orderData);
-    
+  const handleOrderPlaced = async (orderData) => {
+    // Call placeOrder which makes the API call to save the order
+    await placeOrder(orderData);
+
     // Close dialog
     setShowOrderDialog(false);
-    
+
     // Optional: Show success toast
     toast.success("Order placed successfully!");
+  };
+
+  const handleLoginSuccess = () => {
+    setShowLoginModal(false);
+    toast.success("Login successful! You can now place your order");
   };
 
   return (
@@ -113,7 +131,7 @@ const MyCart = () => {
                                 </p>
                               </div>
                               <span className="text-base font-bold text-[#ff7a3c]">
-                                ${(item.price * item.quantity).toFixed(2)}
+                                ₹{(item.price * item.quantity).toFixed(2)}
                               </span>
                             </div>
 
@@ -167,6 +185,15 @@ const MyCart = () => {
                       Order Summary
                     </h2>
 
+                    {/* Authentication Status */}
+                    {!isAuthenticated && (
+                      <div className="mb-6 rounded-lg bg-amber-50 p-3 border border-amber-200">
+                        <p className="text-sm text-amber-800">
+                          <span className="font-semibold">Note:</span> You need to log in to place an order
+                        </p>
+                      </div>
+                    )}
+
                     {/* Promo Code */}
                     <div className="mb-6 flex gap-2">
                       <div className="relative flex-1">
@@ -195,13 +222,13 @@ const MyCart = () => {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#6b7280]">Subtotal</span>
                         <span className="font-semibold text-[#1a1a1a]">
-                          ${subtotal.toFixed(2)}
+                          ₹{subtotal.toFixed(2)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-[#6b7280]">Tax (8%)</span>
                         <span className="font-semibold text-[#1a1a1a]">
-                          ${tax.toFixed(2)}
+                          ₹{tax.toFixed(2)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
@@ -220,7 +247,7 @@ const MyCart = () => {
                         Total
                       </span>
                       <span className="text-2xl font-bold text-[#ff7a3c]">
-                        ${total.toFixed(2)}
+                        ₹{total.toFixed(2)}
                       </span>
                     </div>
 
@@ -230,8 +257,17 @@ const MyCart = () => {
                       className="w-full rounded-full bg-[#ff7a3c] text-base font-bold hover:bg-[#ff6825]"
                       onClick={handlePlaceOrder}
                     >
-                      Place Order
-                      <ArrowRight className="ml-2 h-5 w-5" />
+                      {isAuthenticated ? (
+                        <>
+                          Place Order
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="mr-2 h-5 w-5" />
+                          Login to Order
+                        </>
+                      )}
                     </Button>
 
                     {/* Terms */}
@@ -257,6 +293,13 @@ const MyCart = () => {
         isOpen={showOrderDialog}
         onClose={() => setShowOrderDialog(false)}
         onOrderPlaced={handleOrderPlaced}
+      />
+
+      {/* Login Modal */}
+      <CustomerLoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={handleLoginSuccess}
       />
     </>
   );

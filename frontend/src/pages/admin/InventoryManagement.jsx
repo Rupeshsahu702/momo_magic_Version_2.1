@@ -1,5 +1,9 @@
 // src/pages/InventoryManagement.jsx
-import { useState } from "react";
+/**
+ * Inventory Management Page - Displays all inventory items with CRUD operations.
+ * Connected to MongoDB via inventoryService API calls.
+ */
+import { useState, useEffect } from "react";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
@@ -31,32 +35,120 @@ import {
     AlertTriangle,
     Clock,
     XCircle,
+    Pencil,
+    Trash2,
+    Loader2,
+    FileDown,
+    Upload
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import { Label } from "../../components/ui/label";
-import { Link } from "react-router-dom";
-import chickenImg from "@/assets/Chicken.webp";
-import wrapperImg from "@/assets/wrapper.jpg";
-import schezwanImg from "@/assets/schezwansauce.webp";
-import cabbageImg from "@/assets/cabbage.webp";
-import soySauceImg from "@/assets/soysauce.webp";
+import { Link, useNavigate } from "react-router-dom";
+import inventoryService from "@/services/inventoryService";
+import { toast } from "sonner";
 
+// Default placeholder image for items without an image
+const DEFAULT_IMAGE = "https://via.placeholder.com/100x100?text=No+Image";
 
 export default function InventoryManagement() {
     const [searchQuery, setSearchQuery] = useState("");
     const [category, setCategory] = useState("all");
     const [stockStatus, setStockStatus] = useState("all");
+    const [inventoryItems, setInventoryItems] = useState([]);
+    const [stats, setStats] = useState({
+        totalItems: 0,
+        lowStockCount: 0,
+        outOfStockCount: 0,
+        inStockCount: 0
+    });
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Stats data
-    const stats = [
+    const navigate = useNavigate();
+
+    // Fetch inventory items and stats on component mount
+    useEffect(() => {
+        fetchInventoryData();
+    }, []);
+
+    const fetchInventoryData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const [items, statsData] = await Promise.all([
+                inventoryService.fetchAllInventoryItems(),
+                inventoryService.fetchInventoryStats()
+            ]);
+            setInventoryItems(items);
+            setStats(statsData);
+        } catch (error) {
+            console.error('Error fetching inventory data:', error);
+            setError('Failed to load inventory data. Please try again.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Handle delete inventory item
+    const handleDelete = async (id, itemName) => {
+        if (!window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
+            return;
+        }
+
+        try {
+            await inventoryService.deleteInventoryItem(id);
+            // Refresh the data after deletion
+            fetchInventoryData();
+        } catch (error) {
+            console.error('Error deleting inventory item:', error);
+            alert('Failed to delete item. Please try again.');
+        }
+    };
+
+    // Handle CSV Export
+    const handleExport = async () => {
+        try {
+            const blob = await inventoryService.exportInventoryCSV();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `inventory_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            console.error("Error exporting inventory:", error);
+            toast.error("Failed to export inventory");
+        }
+    };
+
+    // Handle CSV Import
+    const handleImport = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        try {
+            const result = await inventoryService.importInventoryCSV(file);
+            toast.success(result.message);
+            fetchInventoryData(); // Refresh list
+        } catch (error) {
+            console.error("Error importing inventory:", error);
+            toast.error("Failed to import inventory");
+        }
+        // Reset input
+        event.target.value = null;
+    };
+
+    // Stats cards configuration
+    const statsCards = [
         {
             icon: TrendingUp,
             iconBg: "bg-blue-100",
             iconColor: "text-blue-600",
-            label: "Total Ingredients",
-            value: 142,
-            badge: "+6%",
-            badgeColor: "text-green-600",
+            label: "Total Items",
+            value: stats.totalItems,
+            badge: "All",
+            badgeColor: "text-blue-600",
             subtext: "Across all categories",
         },
         {
@@ -64,103 +156,34 @@ export default function InventoryManagement() {
             iconBg: "bg-orange-100",
             iconColor: "text-orange-600",
             label: "Low Stock Alerts",
-            value: 4,
-            badge: "Urgent",
-            badgeColor: "text-orange-600",
-            subtext: "+2 from yesterday",
+            value: stats.lowStockCount,
+            badge: stats.lowStockCount > 0 ? "Urgent" : "OK",
+            badgeColor: stats.lowStockCount > 0 ? "text-orange-600" : "text-green-600",
+            subtext: "Below threshold",
         },
         {
             icon: Clock,
-            iconBg: "bg-blue-100",
-            iconColor: "text-blue-600",
-            label: "Pending Orders",
-            value: 12,
-            badge: "Arriving Soon",
-            badgeColor: "text-blue-600",
-            subtext: "From 5 suppliers",
+            iconBg: "bg-green-100",
+            iconColor: "text-green-600",
+            label: "In Stock",
+            value: stats.inStockCount,
+            badge: "Good",
+            badgeColor: "text-green-600",
+            subtext: "Above threshold",
         },
         {
             icon: XCircle,
             iconBg: "bg-red-100",
             iconColor: "text-red-600",
             label: "Out of Stock",
-            value: 2,
-            badge: "Critical",
-            badgeColor: "text-red-600",
+            value: stats.outOfStockCount,
+            badge: stats.outOfStockCount > 0 ? "Critical" : "OK",
+            badgeColor: stats.outOfStockCount > 0 ? "text-red-600" : "text-green-600",
             subtext: "Restock needed",
         },
     ];
 
-    // Inventory items
-    const inventoryItems = [
-        {
-            id: 1,
-            name: "Chicken Breast",
-            supplier: "Boulder Fresh",
-            sku: "CH-001-BR",
-            category: "Meat",
-            categoryColor: "bg-blue-100 text-blue-700",
-            stockLevel: 50,
-            maxStock: 60,
-            unit: "kg",
-            status: "in-stock",
-            image: chickenImg,
-        },
-        {
-            id: 2,
-            name: "Momo Wrappers",
-            supplier: "Asian Slices",
-            sku: "WR-185-S10",
-            category: "Dry Goods",
-            categoryColor: "bg-purple-100 text-purple-700",
-            stockLevel: 15,
-            maxStock: 100,
-            unit: "pks",
-            status: "low-stock",
-            image: wrapperImg,
-        },
-        {
-            id: 3,
-            name: "Szechuan Sauce",
-            supplier: "SpicyWorld",
-            sku: "SA-868-H67",
-            category: "Sauce & Spices",
-            categoryColor: "bg-yellow-100 text-yellow-700",
-            stockLevel: 0,
-            maxStock: 40,
-            unit: "L",
-            status: "out-of-stock",
-            image: schezwanImg,
-        },
-        {
-            id: 4,
-            name: "Cabbage",
-            supplier: "Local Market",
-            sku: "VE-282-CAB",
-            category: "Produce",
-            categoryColor: "bg-green-100 text-green-700",
-            stockLevel: 25,
-            maxStock: 40,
-            unit: "kg",
-            status: "in-stock",
-            image: cabbageImg,
-        },
-        {
-            id: 5,
-            name: "Soy Sauce",
-            supplier: "Kiko Corp",
-            sku: "SA-488-S67",
-            category: "Sauce & Spices",
-            categoryColor: "bg-yellow-100 text-yellow-700",
-            stockLevel: 18,
-            maxStock: 50,
-            unit: "L",
-            status: "in-stock",
-            image: soySauceImg,
-        },
-    ];
-
-    // Get status badge
+    // Get status badge component
     const getStatusBadge = (status) => {
         const statusConfig = {
             "in-stock": {
@@ -180,7 +203,7 @@ export default function InventoryManagement() {
             },
         };
 
-        const config = statusConfig[status];
+        const config = statusConfig[status] || statusConfig["in-stock"];
         return (
             <Badge variant="secondary" className={config.className}>
                 <span className="mr-1">{config.icon}</span>
@@ -189,27 +212,41 @@ export default function InventoryManagement() {
         );
     };
 
-    // Calculate stock percentage
-    const getStockPercentage = (current, max) => {
-        return (current / max) * 100;
+    // Get category badge color
+    const getCategoryColor = (categoryName) => {
+        const categoryColors = {
+            "Meat": "bg-blue-100 text-blue-700",
+            "Produce": "bg-green-100 text-green-700",
+            "Dry Goods": "bg-purple-100 text-purple-700",
+            "Sauce & Spices": "bg-yellow-100 text-yellow-700",
+            "Packaging": "bg-gray-100 text-gray-700",
+            "Beverages": "bg-pink-100 text-pink-700",
+        };
+        return categoryColors[categoryName] || "bg-gray-100 text-gray-700";
     };
 
-    // Get progress bar color
+    // Calculate stock percentage
+    const getStockPercentage = (current, initial) => {
+        if (initial === 0) return 0;
+        return Math.min((current / initial) * 100, 100);
+    };
+
+    // Get progress bar color based on percentage
     const getProgressColor = (percentage) => {
         if (percentage === 0) return "bg-red-500";
         if (percentage < 30) return "bg-orange-500";
         return "bg-green-500";
     };
 
-    // Filtered items based on search, category and stock status
+    // Filter items based on search, category and stock status
     const filteredItems = inventoryItems.filter((item) => {
-        const q = searchQuery.trim().toLowerCase();
+        const searchLower = searchQuery.trim().toLowerCase();
         const matchesSearch =
-            q === "" ||
-            `${item.name} ${item.sku} ${item.supplier}`.toLowerCase().includes(q);
+            searchLower === "" ||
+            `${item.name} ${item.sku} ${item.supplierName}`.toLowerCase().includes(searchLower);
 
         const matchesCategory = category === "all" || item.category === category;
-        const matchesStock = stockStatus === "all" || item.status === stockStatus;
+        const matchesStock = stockStatus === "all" || item.stockStatus === stockStatus;
 
         return matchesSearch && matchesCategory && matchesStock;
     });
@@ -221,24 +258,12 @@ export default function InventoryManagement() {
                 {/* Header */}
                 <header className="bg-white border-b px-6 py-4">
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <SidebarTrigger />
-                                <h1 className="text-xl md:text-2xl font-bold text-gray-900">Inventory Management</h1>
-                            </div>
+                        <div className="flex items-center gap-4">
+                            <SidebarTrigger />
+                            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Inventory Management</h1>
+                        </div>
 
-                            <div className="flex items-center gap-4 mt-3 md:mt-0">
-                            {/* Search */}
-                            {/* <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search global..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-10 w-64"
-                                />
-                            </div> */}
-
+                        <div className="flex items-center gap-4 mt-3 md:mt-0">
                             {/* Notification */}
                             <Button variant="ghost" size="icon">
                                 <Bell className="h-5 w-5 text-gray-600" />
@@ -256,7 +281,7 @@ export default function InventoryManagement() {
                 <div className="p-6">
                     {/* Stats Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        {stats.map((stat, index) => {
+                        {statsCards.map((stat, index) => {
                             const Icon = stat.icon;
                             return (
                                 <Card key={index} className="bg-white">
@@ -308,11 +333,13 @@ export default function InventoryManagement() {
                                         <SelectValue placeholder="All Categories" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                            <SelectItem className="cursor-pointer" value="all">All Categories</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="Meat">Meat</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="Produce">Produce</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="Dry Goods">Dry Goods</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="Sauce & Spices">Sauce & Spices</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="all">All Categories</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="Meat">Meat</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="Produce">Produce</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="Dry Goods">Dry Goods</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="Sauce & Spices">Sauce & Spices</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="Packaging">Packaging</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="Beverages">Beverages</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -325,17 +352,33 @@ export default function InventoryManagement() {
                                         <SelectValue placeholder="All Statuses" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                            <SelectItem className="cursor-pointer" value="all">All Statuses</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="in-stock">In Stock</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="low-stock">Low Stock</SelectItem>
-                                            <SelectItem className="cursor-pointer" value="out-of-stock">Out of Stock</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="all">All Statuses</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="in-stock">In Stock</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="low-stock">Low Stock</SelectItem>
+                                        <SelectItem className="cursor-pointer" value="out-of-stock">Out of Stock</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             {/* Add New Item Button */}
-                            <div className="pt-6">
-                                    <Link to="/admin/inventory/add">
+                            <div className="pt-6 flex gap-2">
+                                <Button variant="outline" className="gap-2" onClick={handleExport}>
+                                    <FileDown className="h-4 w-4" />
+                                    Export CSV
+                                </Button>
+                                <div className="relative">
+                                    <input
+                                        type="file"
+                                        accept=".csv"
+                                        onChange={handleImport}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <Button variant="outline" className="gap-2">
+                                        <Upload className="h-4 w-4" />
+                                        Import CSV
+                                    </Button>
+                                </div>
+                                <Link to="/admin/inventory/add">
                                     <Button className="bg-orange-500 hover:bg-orange-600 text-white cursor-pointer">
                                         <Plus className="h-4 w-4 mr-2" />
                                         Add New Item
@@ -345,126 +388,177 @@ export default function InventoryManagement() {
                         </div>
                     </div>
 
-                    {/* Inventory Table */}
-                    <div className="bg-white rounded-lg border overflow-hidden">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-gray-50">
-                                    <TableHead className="font-semibold text-gray-700">ITEM NAME</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">SKU</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">CATEGORY</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">STOCK LEVEL</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">STATUS</TableHead>
-                                    <TableHead className="font-semibold text-gray-700">ACTIONS</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredItems.map((item) => {
-                                    const percentage = getStockPercentage(item.stockLevel, item.maxStock);
-                                    const progressColor = getProgressColor(percentage);
+                    {/* Loading State */}
+                    {isLoading && (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                            <span className="ml-2 text-gray-600">Loading inventory...</span>
+                        </div>
+                    )}
 
-                                    return (
-                                        <TableRow key={item.id} className="hover:bg-gray-50">
-                                            {/* Item Name */}
-                                            <TableCell>
-                                                <div className="flex items-center gap-3">
-                                                    <img
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        className="w-12 h-12 rounded-lg object-cover border"
-                                                    />
-                                                    <div>
-                                                        <p className="font-medium text-gray-900">{item.name}</p>
-                                                        <p className="text-sm text-gray-500">
-                                                            Supplier: {item.supplier}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-
-                                            {/* SKU */}
-                                            <TableCell className="text-gray-600">{item.sku}</TableCell>
-
-                                            {/* Category */}
-                                            <TableCell>
-                                                <Badge className={`${item.categoryColor} border-0`}>
-                                                    {item.category}
-                                                </Badge>
-                                            </TableCell>
-
-                                            {/* Stock Level */}
-                                            <TableCell>
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center justify-between text-sm">
-                                                        <span className="font-medium text-gray-900">
-                                                            {item.stockLevel} {item.unit}
-                                                        </span>
-                                                        <span className="text-gray-500">
-                                                            of {item.maxStock} {item.unit}
-                                                        </span>
-                                                    </div>
-                                                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                                                        <div
-                                                            className={`h-full rounded-full transition-all ${progressColor}`}
-                                                            style={{ width: `${percentage}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-
-                                            {/* Status */}
-                                            <TableCell>{getStatusBadge(item.status)}</TableCell>
-
-                                            {/* Actions */}
-                                            <TableCell>
-                                                {item.status === "out-of-stock" && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
-                                                    >
-                                                        Restock Now
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="flex items-center justify-between mt-6">
-                        <p className="text-sm text-gray-600">
-                            Showing <span className="font-medium">{filteredItems.length > 0 ? `1-${filteredItems.length}` : 0}</span> of{" "}
-                            <span className="font-medium">{filteredItems.length}</span> results
-                        </p>
-
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" className="cursor-pointer">
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-
+                    {/* Error State */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                            <p className="text-red-700">{error}</p>
                             <Button
+                                variant="outline"
                                 size="sm"
-                                className="bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+                                onClick={fetchInventoryData}
+                                className="mt-2"
                             >
-                                1
-                            </Button>
-                            <Button size="sm" variant="outline" className="cursor-pointer">
-                                2
-                            </Button>
-                            <Button size="sm" variant="outline" className="cursor-pointer">
-                                3
-                            </Button>
-                            <span className="text-gray-500">...</span>
-
-                            <Button variant="outline" size="icon" className="cursor-pointer">
-                                <ChevronRight className="h-4 w-4" />
+                                Retry
                             </Button>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Inventory Table */}
+                    {!isLoading && !error && (
+                        <div className="bg-white rounded-lg border overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-gray-50">
+                                        <TableHead className="font-semibold text-gray-700">ITEM NAME</TableHead>
+                                        <TableHead className="font-semibold text-gray-700">SKU</TableHead>
+                                        <TableHead className="font-semibold text-gray-700">CATEGORY</TableHead>
+                                        <TableHead className="font-semibold text-gray-700">STOCK LEVEL</TableHead>
+                                        <TableHead className="font-semibold text-gray-700">STATUS</TableHead>
+                                        <TableHead className="font-semibold text-gray-700">ACTIONS</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredItems.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                                {inventoryItems.length === 0
+                                                    ? "No inventory items yet. Click 'Add New Item' to get started."
+                                                    : "No items match your search criteria."}
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        filteredItems.map((item) => {
+                                            const percentage = getStockPercentage(item.currentQuantity, item.initialQuantity);
+                                            const progressColor = getProgressColor(percentage);
+
+                                            return (
+                                                <TableRow key={item._id} className="hover:bg-gray-50">
+                                                    {/* Item Name */}
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-3">
+                                                            <img
+                                                                src={item.imageUrl || DEFAULT_IMAGE}
+                                                                alt={item.name}
+                                                                className="w-12 h-12 rounded-lg object-cover border"
+                                                                onError={(e) => {
+                                                                    e.target.src = DEFAULT_IMAGE;
+                                                                }}
+                                                            />
+                                                            <div>
+                                                                <p className="font-medium text-gray-900">{item.name}</p>
+                                                                <p className="text-sm text-gray-500">
+                                                                    Supplier: {item.supplierName || 'N/A'}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+
+                                                    {/* SKU */}
+                                                    <TableCell className="text-gray-600">{item.sku || 'N/A'}</TableCell>
+
+                                                    {/* Category */}
+                                                    <TableCell>
+                                                        <Badge className={`${getCategoryColor(item.category)} border-0`}>
+                                                            {item.category}
+                                                        </Badge>
+                                                    </TableCell>
+
+                                                    {/* Stock Level */}
+                                                    <TableCell>
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center justify-between text-sm">
+                                                                <span className="font-medium text-gray-900">
+                                                                    {item.currentQuantity} {item.unitOfMeasure}
+                                                                </span>
+                                                                <span className="text-gray-500">
+                                                                    of {item.initialQuantity} {item.unitOfMeasure}
+                                                                </span>
+                                                            </div>
+                                                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                                                                <div
+                                                                    className={`h-full rounded-full transition-all ${progressColor}`}
+                                                                    style={{ width: `${percentage}%` }}
+                                                                ></div>
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+
+                                                    {/* Status */}
+                                                    <TableCell>{getStatusBadge(item.stockStatus)}</TableCell>
+
+                                                    {/* Actions */}
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="cursor-pointer"
+                                                                onClick={() => navigate(`/admin/inventory/edit/${item._id}`)}
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="cursor-pointer text-red-600 hover:bg-red-50"
+                                                                onClick={() => handleDelete(item._id, item.name)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                            {item.stockStatus === "out-of-stock" && (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="border-red-200 text-red-600 hover:bg-red-50 cursor-pointer"
+                                                                >
+                                                                    Restock
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {!isLoading && !error && filteredItems.length > 0 && (
+                        <div className="flex items-center justify-between mt-6">
+                            <p className="text-sm text-gray-600">
+                                Showing <span className="font-medium">{filteredItems.length}</span> of{" "}
+                                <span className="font-medium">{inventoryItems.length}</span> results
+                            </p>
+
+                            <div className="flex items-center gap-2">
+                                <Button variant="outline" size="icon" className="cursor-pointer">
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+
+                                <Button
+                                    size="sm"
+                                    className="bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+                                >
+                                    1
+                                </Button>
+
+                                <Button variant="outline" size="icon" className="cursor-pointer">
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </>

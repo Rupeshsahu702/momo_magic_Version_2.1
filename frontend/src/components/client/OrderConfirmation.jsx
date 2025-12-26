@@ -31,7 +31,9 @@ const OrderConfirmation = ({ isOpen, onClose, onOrderPlaced }) => {
     return `MMC-${Math.floor(1000 + Math.random() * 9000)}`;
   };
 
-  const handleConfirmOrder = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleConfirmOrder = async () => {
     if (!tableNumber) {
       alert("Please enter a table number");
       return;
@@ -45,15 +47,21 @@ const OrderConfirmation = ({ isOpen, onClose, onOrderPlaced }) => {
       timestamp: new Date().toISOString(),
     };
 
-    setOrderData(order);
-    setStep(2);
+    setIsLoading(true);
 
-    // Call parent callback immediately (removed setTimeout)
-    setTimeout(() => {
+    try {
+      // Call parent callback to place order via API
       if (onOrderPlaced) {
-        onOrderPlaced(order);
+        await onOrderPlaced(order);
       }
-    }, 10000);
+      setOrderData(order);
+      setStep(2);
+    } catch (error) {
+      console.error("Error placing order:", error);
+      alert("Failed to place order. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleClose = () => {
@@ -149,8 +157,9 @@ const OrderConfirmation = ({ isOpen, onClose, onOrderPlaced }) => {
                 size="lg"
                 className="mb-3 w-full rounded-xl bg-[#ff7a3c] text-base font-bold hover:bg-[#ff6825]"
                 onClick={handleConfirmOrder}
+                disabled={isLoading}
               >
-                Confirm Order • ${total.toFixed(2)}
+                {isLoading ? "Placing Order..." : `Confirm Order • ₹${total.toFixed(2)}`}
               </Button>
 
               {/* Cancel Button */}

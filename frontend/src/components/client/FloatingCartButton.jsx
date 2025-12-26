@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
@@ -6,7 +6,6 @@ import { useCart } from "@/context/CartContext";
 const FloatingCartButton = () => {
   const { cartItems, getTotalItems, getTotalPrice } = useCart();
   const [isMobile, setIsMobile] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
   const navigate = useNavigate();
 
   const totalItems = getTotalItems();
@@ -20,10 +19,9 @@ const FloatingCartButton = () => {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // show only when mobile + cart not empty
-  useEffect(() => {
-    if (isMobile && totalItems > 0) setIsVisible(true);
-    else setIsVisible(false);
+  // Derive visibility from isMobile and totalItems instead of using setState in effect
+  const isVisible = useMemo(() => {
+    return isMobile && totalItems > 0;
   }, [isMobile, totalItems]);
 
   const handleClick = () => {

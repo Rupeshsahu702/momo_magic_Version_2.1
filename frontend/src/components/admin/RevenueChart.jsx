@@ -23,37 +23,78 @@ ChartJS.register(
   Filler
 );
 
-export default function RevenueChart({ height = 300 }) {
+export default function RevenueChart({ data = null, dataType = 'hourly', period = 'today', height = 300 }) {
+  // Format hour labels (e.g., "12 AM", "1 PM")
+  const formatHourLabel = (hour) => {
+    if (hour === 0) return '12 AM';
+    if (hour === 12) return '12 PM';
+    if (hour < 12) return `${hour} AM`;
+    return `${hour - 12} PM`;
+  };
+
+  // Format day of week label
+  const getDayOfWeekName = (dayOfWeek) => {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[dayOfWeek - 1] || '';
+  };
+
+  const hasData = data && data.length > 0;
+  let labels = [];
+  let revenueValues = [];
+  let filteredData = [];
+
+  if (dataType === 'hourly') {
+    // Hourly data (for "Today")
+    if (hasData) {
+      const activeHours = data.filter(item => item.revenue > 0);
+
+      if (activeHours.length > 0) {
+        const minHour = Math.min(...activeHours.map(item => item.hour));
+        const maxHour = Math.max(...activeHours.map(item => item.hour));
+        const startHour = Math.max(0, minHour - 1);
+        const endHour = Math.min(23, maxHour + 1);
+        filteredData = data.filter(item => item.hour >= startHour && item.hour <= endHour);
+      } else {
+        filteredData = data;
+      }
+    }
+
+    labels = filteredData.map(item => formatHourLabel(item.hour));
+    revenueValues = filteredData.map(item => item.revenue);
+  } else {
+    // Daily data (for "This Week" or "This Month")
+    filteredData = data || [];
+
+    // Different label format for week vs month
+    if (period === 'week') {
+      // For weekly: show day names (Mon, Tue, Wed...)
+      labels = filteredData.map(item => getDayOfWeekName(item.dayOfWeek));
+    } else {
+      // For monthly: show dates (1, 2, 3... or Dec 1, Dec 2...)
+      labels = filteredData.map(item => `${item.day}`);
+    }
+
+    revenueValues = filteredData.map(item => item.revenue);
+  }
+
   const chartData = {
-    labels: ['8:00 AM', '11:00 AM', '2:00 PM', '5:00 PM', '8:00 PM', '11:00 PM'],
+    labels,
     datasets: [
       {
         label: 'Revenue',
-        data: [4200, 5100, 6800, 5900, 7200, 6500],
+        data: revenueValues,
         borderColor: 'rgb(249, 115, 22)',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+        backgroundColor: 'rgba(249, 115, 22, 0.15)',
         fill: true,
-        tension: 0.4,
+        tension: 0.3,
+        borderWidth: 3,
         pointBackgroundColor: 'rgb(249, 115, 22)',
         pointBorderColor: '#fff',
         pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-      {
-        label: 'Costs',
-        data: [2800, 3200, 4100, 3600, 4500, 4000],
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: 'rgb(59, 130, 246)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        borderDash: [5, 5],
-      },
+        pointRadius: period === 'week' ? 6 : 4,
+        pointHoverRadius: 8,
+        pointHoverBorderWidth: 3,
+      }
     ],
   };
 
@@ -66,28 +107,22 @@ export default function RevenueChart({ height = 300 }) {
     },
     plugins: {
       legend: {
-        display: true,
-        position: 'bottom',
-        labels: {
-          usePointStyle: true,
-          padding: 15,
-          font: {
-            size: 12,
-          },
-        },
+        display: false,
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 12,
         titleFont: {
           size: 14,
+          weight: 'bold',
         },
         bodyFont: {
           size: 13,
         },
+        displayColors: true,
         callbacks: {
-          label: function(context) {
-            return context.dataset.label + ': $' + context.parsed.y.toLocaleString();
+          label: function (context) {
+            return 'Revenue: ₹' + context.parsed.y.toLocaleString();
           }
         }
       },
@@ -100,20 +135,27 @@ export default function RevenueChart({ height = 300 }) {
         ticks: {
           font: {
             size: 11,
+            weight: '500',
           },
+          maxRotation: period === 'month' ? 45 : 0,
+          minRotation: 0,
+          autoSkip: period === 'month',
+          maxTicksLimit: period === 'month' ? 15 : 10,
         },
       },
       y: {
         beginAtZero: true,
         grid: {
           color: 'rgba(0, 0, 0, 0.05)',
+          drawBorder: false,
         },
         ticks: {
           font: {
             size: 11,
           },
-          callback: function(value) {
-            return '$' + value.toLocaleString();
+          padding: 8,
+          callback: function (value) {
+            return '₹' + value.toLocaleString();
           }
         },
       },
@@ -122,7 +164,13 @@ export default function RevenueChart({ height = 300 }) {
 
   return (
     <div style={{ height: `${height}px` }}>
-      <Line data={chartData} options={options} />
+      {filteredData.length > 0 ? (
+        <Line data={chartData} options={options} />
+      ) : (
+        <div className="flex items-center justify-center h-full text-gray-400">
+          No revenue data available for this period
+        </div>
+      )}
     </div>
   );
 }

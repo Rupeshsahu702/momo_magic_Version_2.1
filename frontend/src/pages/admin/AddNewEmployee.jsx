@@ -1,4 +1,8 @@
-// src/pages/AddNewEmployee.jsx
+/**
+ * AddNewEmployee - Form page for creating new employee profiles.
+ * Collects personal info, contact details, and employment/system access settings.
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../../components/ui/input";
@@ -14,12 +18,15 @@ import {
 } from "../../components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { SidebarTrigger } from "../../components/ui/sidebar";
-import { ChevronRight, Upload, User, IdCard, Briefcase } from "lucide-react";
+import { ChevronRight, Upload, User, IdCard, Briefcase, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AdminSidebar from "@/components/admin/Sidebar";
+import employeeService from "@/services/employeeService";
 
 export default function AddNewEmployee() {
   const navigate = useNavigate();
+
+  // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [dob, setDob] = useState("");
@@ -27,7 +34,8 @@ export default function AddNewEmployee() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [role, setRole] = useState("");
+  const [position, setPosition] = useState("");
+  const [shift, setShift] = useState("09:00 AM - 05:00 PM");
   const [permissionLevel, setPermissionLevel] = useState("standard");
   const [accountActive, setAccountActive] = useState(true);
   const [employeeId, setEmployeeId] = useState("");
@@ -36,12 +44,83 @@ export default function AddNewEmployee() {
   const [emergencyPhone, setEmergencyPhone] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
 
+  // Loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Handle profile photo upload
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       setProfilePhoto(URL.createObjectURL(file));
     }
+  };
+
+  // Generate employee ID
+  const generateEmployeeId = () => {
+    const prefix = "MM";
+    const randomNum = Math.floor(Math.random() * 9000) + 1000;
+    setEmployeeId(`${prefix}-${randomNum}`);
+  };
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phone || !position || !employeeId) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const employeeData = {
+        employeeId,
+        name: `${firstName} ${lastName}`,
+        email,
+        phone,
+        position,
+        shift,
+        avatar: profilePhoto || "",
+        dateOfBirth: dob ? new Date(dob) : null,
+        gender,
+        address,
+        startDate: startDate ? new Date(startDate) : new Date(),
+        emergencyContactName: emergencyName,
+        emergencyContactPhone: emergencyPhone,
+        permissionLevel,
+        isActive: accountActive
+      };
+
+      await employeeService.createEmployee(employeeData);
+      toast.success("Employee profile created successfully!");
+      navigate("/admin/employees");
+    } catch (error) {
+      console.error("Error creating employee:", error);
+      const errorMessage = error.response?.data?.message || "Failed to create employee";
+      toast.error(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Reset form - available for future use (e.g., reset button)
+  const _resetForm = () => {
+    setFirstName("");
+    setLastName("");
+    setDob("");
+    setGender("");
+    setEmail("");
+    setPhone("");
+    setAddress("");
+    setPosition("");
+    setShift("09:00 AM - 05:00 PM");
+    setPermissionLevel("standard");
+    setAccountActive(true);
+    setEmployeeId("");
+    setStartDate("");
+    setEmergencyName("");
+    setEmergencyPhone("");
+    setProfilePhoto(null);
   };
 
   return (
@@ -58,7 +137,12 @@ export default function AddNewEmployee() {
                 <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                   <span className="hover:text-orange-500 cursor-pointer">Dashboard</span>
                   <ChevronRight className="h-4 w-4" />
-                  <span className="hover:text-orange-500 cursor-pointer">Employees</span>
+                  <span
+                    className="hover:text-orange-500 cursor-pointer"
+                    onClick={() => navigate("/admin/employees")}
+                  >
+                    Employees
+                  </span>
                   <ChevronRight className="h-4 w-4" />
                   <span className="text-orange-500">Add New</span>
                 </div>
@@ -71,30 +155,29 @@ export default function AddNewEmployee() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => navigate('/admin/employees')}>Cancel</Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/employees')}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
               <Button
                 className="bg-orange-500 hover:bg-orange-600 text-white"
-                onClick={() => {
-                  toast.success("New profile has been created");
-                  setFirstName("");
-                  setLastName("");
-                  setDob("");
-                  setGender("");
-                  setEmail("");
-                  setPhone("");
-                  setAddress("");
-                  setRole("");
-                  setPermissionLevel("standard");
-                  setAccountActive(true);
-                  setEmployeeId("");
-                  setStartDate("");
-                  setEmergencyName("");
-                  setEmergencyPhone("");
-                  setProfilePhoto(null);
-                }}
+                onClick={handleSubmit}
+                disabled={isSubmitting}
               >
-                <User className="h-4 w-4 mr-2" />
-                Create Profile
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <User className="h-4 w-4 mr-2" />
+                    Create Profile
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -163,21 +246,43 @@ export default function AddNewEmployee() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Role */}
+                  {/* Role/Position */}
                   <div>
-                    <Label htmlFor="role" className="text-sm font-medium">
-                      Role
+                    <Label htmlFor="position" className="text-sm font-medium">
+                      Position <span className="text-red-500">*</span>
                     </Label>
-                    <Select value={role} onValueChange={setRole}>
+                    <Select value={position} onValueChange={setPosition}>
                       <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select Role..." />
+                        <SelectValue placeholder="Select Position..." />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="head-chef">Head Chef</SelectItem>
-                        <SelectItem value="sous-chef">Sous Chef</SelectItem>
-                        <SelectItem value="cashier">Cashier</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="inventory-manager">Inventory Manager</SelectItem>
+                        <SelectItem value="Head Chef">Head Chef</SelectItem>
+                        <SelectItem value="Sous Chef">Sous Chef</SelectItem>
+                        <SelectItem value="Line Cook">Line Cook</SelectItem>
+                        <SelectItem value="Cashier">Cashier</SelectItem>
+                        <SelectItem value="Manager">Manager</SelectItem>
+                        <SelectItem value="Inventory Manager">Inventory Manager</SelectItem>
+                        <SelectItem value="Server">Server</SelectItem>
+                        <SelectItem value="Cleaner">Cleaner</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Shift */}
+                  <div>
+                    <Label htmlFor="shift" className="text-sm font-medium">
+                      Shift Time
+                    </Label>
+                    <Select value={shift} onValueChange={setShift}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select Shift..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="09:00 AM - 05:00 PM">09:00 AM - 05:00 PM</SelectItem>
+                        <SelectItem value="08:00 AM - 04:00 PM">08:00 AM - 04:00 PM</SelectItem>
+                        <SelectItem value="11:00 AM - 07:00 PM">11:00 AM - 07:00 PM</SelectItem>
+                        <SelectItem value="02:00 PM - 10:00 PM">02:00 PM - 10:00 PM</SelectItem>
+                        <SelectItem value="06:00 PM - 02:00 AM">06:00 PM - 02:00 AM</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -190,33 +295,30 @@ export default function AddNewEmployee() {
                     <div className="space-y-2">
                       <button
                         onClick={() => setPermissionLevel("standard")}
-                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                          permissionLevel === "standard"
-                            ? "bg-orange-50 border-orange-500 text-orange-700"
-                            : "bg-white border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${permissionLevel === "standard"
+                          ? "bg-orange-50 border-orange-500 text-orange-700"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}
                       >
                         <p className="font-medium">Standard</p>
                       </button>
 
                       <button
                         onClick={() => setPermissionLevel("admin")}
-                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                          permissionLevel === "admin"
-                            ? "bg-orange-50 border-orange-500 text-orange-700"
-                            : "bg-white border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${permissionLevel === "admin"
+                          ? "bg-orange-50 border-orange-500 text-orange-700"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}
                       >
                         <p className="font-medium">Admin</p>
                       </button>
 
                       <button
                         onClick={() => setPermissionLevel("viewer")}
-                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                          permissionLevel === "viewer"
-                            ? "bg-orange-50 border-orange-500 text-orange-700"
-                            : "bg-white border-gray-200 hover:border-gray-300"
-                        }`}
+                        className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${permissionLevel === "viewer"
+                          ? "bg-orange-50 border-orange-500 text-orange-700"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                          }`}
                       >
                         <p className="font-medium">Viewer</p>
                       </button>
@@ -253,7 +355,7 @@ export default function AddNewEmployee() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="firstName" className="text-sm font-medium">
-                        First Name
+                        First Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="firstName"
@@ -266,7 +368,7 @@ export default function AddNewEmployee() {
 
                     <div>
                       <Label htmlFor="lastName" className="text-sm font-medium">
-                        Last Name
+                        Last Name <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="lastName"
@@ -325,7 +427,7 @@ export default function AddNewEmployee() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="email" className="text-sm font-medium">
-                        Email Address
+                        Email Address <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="email"
@@ -339,7 +441,7 @@ export default function AddNewEmployee() {
 
                     <div>
                       <Label htmlFor="phone" className="text-sm font-medium">
-                        Phone Number
+                        Phone Number <span className="text-red-500">*</span>
                       </Label>
                       <Input
                         id="phone"
@@ -381,15 +483,24 @@ export default function AddNewEmployee() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="employeeId" className="text-sm font-medium">
-                        Employee ID
+                        Employee ID <span className="text-red-500">*</span>
                       </Label>
-                      <Input
-                        id="employeeId"
-                        placeholder="MM-2024-893"
-                        value={employeeId}
-                        onChange={(e) => setEmployeeId(e.target.value)}
-                        className="mt-1"
-                      />
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          id="employeeId"
+                          placeholder="MM-2024-893"
+                          value={employeeId}
+                          onChange={(e) => setEmployeeId(e.target.value)}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={generateEmployeeId}
+                          className="whitespace-nowrap"
+                        >
+                          Generate
+                        </Button>
+                      </div>
                     </div>
 
                     <div>

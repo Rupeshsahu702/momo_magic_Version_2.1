@@ -19,25 +19,43 @@ ChartJS.register(
   Legend
 );
 
-export default function PeakOrderBarChart({ height = 250 }) {
-  const data = {
-    labels: ['12p', '2p', '4p', '6p'],
+export default function PeakOrderBarChart({ data = [], height = 250 }) {
+  // Format hour labels (e.g., "12 AM", "1 PM")
+  const formatHourLabel = (hour) => {
+    if (hour === 0) return '12 AM';
+    if (hour === 12) return '12 PM';
+    if (hour < 12) return `${hour} AM`;
+    return `${hour - 12} PM`;
+  };
+
+  // Use real data if provided, otherwise show empty chart
+  const hasData = data && data.length > 0;
+  const labels = hasData
+    ? data.map(item => formatHourLabel(item.hour))
+    : [];
+
+  const orderCounts = hasData
+    ? data.map(item => item.orderCount)
+    : [];
+
+  // Find the maximum order count to highlight the peak hour
+  const maxOrderCount = Math.max(...orderCounts, 0);
+
+  // Create background colors array - highlight the peak hour
+  const backgroundColors = orderCounts.map(count =>
+    count === maxOrderCount && count > 0
+      ? 'rgba(249, 115, 22, 1)' // Highlighted peak
+      : 'rgba(249, 115, 22, 0.4)' // Normal
+  );
+
+  const chartData = {
+    labels,
     datasets: [
       {
         label: 'Orders',
-        data: [80, 60, 90, 45],
-        backgroundColor: [
-          'rgba(249, 115, 22, 0.4)',
-          'rgba(249, 115, 22, 0.4)',
-          'rgba(249, 115, 22, 1)', // Highlighted max value
-          'rgba(249, 115, 22, 0.4)',
-        ],
-        borderColor: [
-          'rgb(249, 115, 22)',
-          'rgb(249, 115, 22)',
-          'rgb(249, 115, 22)',
-          'rgb(249, 115, 22)',
-        ],
+        data: orderCounts,
+        backgroundColor: backgroundColors,
+        borderColor: orderCounts.map(() => 'rgb(249, 115, 22)'),
         borderWidth: 2,
         borderRadius: 8,
       },
@@ -56,7 +74,7 @@ export default function PeakOrderBarChart({ height = 250 }) {
         padding: 10,
         displayColors: false,
         callbacks: {
-          label: function(context) {
+          label: function (context) {
             return 'Orders: ' + context.parsed.y;
           }
         }
@@ -76,12 +94,14 @@ export default function PeakOrderBarChart({ height = 250 }) {
       },
       y: {
         beginAtZero: true,
-        max: 100,
         grid: {
           color: 'rgba(0, 0, 0, 0.05)',
         },
         ticks: {
-          display: false,
+          display: true,
+          font: {
+            size: 11,
+          },
         },
       },
     },
@@ -89,7 +109,7 @@ export default function PeakOrderBarChart({ height = 250 }) {
 
   return (
     <div style={{ height: `${height}px` }}>
-      <Bar data={data} options={options} />
+      <Bar data={chartData} options={options} />
     </div>
   );
 }

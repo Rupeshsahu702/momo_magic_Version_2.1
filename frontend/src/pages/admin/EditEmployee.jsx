@@ -1,4 +1,8 @@
-// src/pages/EditEmployee.jsx
+/**
+ * EditEmployee - Form page for editing existing employee profiles.
+ * Fetches employee data from API and allows updating all fields.
+ */
+
 import { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate, Link } from "react-router-dom";
 import { Input } from "../../components/ui/input";
@@ -23,44 +27,99 @@ import {
   Phone,
   Briefcase,
   MapPin,
-  History,
+  CalendarDays,
   Save,
   X,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import AdminSidebar from "@/components/admin/Sidebar";
+import AttendanceCalendar from "@/components/admin/AttendanceCalendar";
+import employeeService from "@/services/employeeService";
 
 export default function EditEmployee() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get employee data from navigation state or use defaults
-  const employeeData = location.state?.employee || {
-    name: "Sarah Jenkins",
-    employeeId: "#MM-4621",
-    email: "sarah.j@momomagic.com",
-    phone: "+1 (555) 012-3456",
-    role: "Shift Supervisor",
-    status: "Active",
-    address: "123 Maple Street, Springfield, IL 62704",
-    joinDate: "Jan 15, 2023",
-  };
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Form state
-  const [firstName, setFirstName] = useState(
-    employeeData.name?.split(" ")[0] || "Sarah"
-  );
-  const [lastName, setLastName] = useState(
-    employeeData.name?.split(" ")[1] || "Jenkins"
-  );
-  const [email, setEmail] = useState(employeeData.email || "");
-  const [phone, setPhone] = useState(employeeData.phone || "");
-  const [jobRole, setJobRole] = useState(employeeData.role || "");
-  const [employmentStatus, setEmploymentStatus] = useState(
-    employeeData.status || "Active"
-  );
-  const [address, setAddress] = useState(employeeData.address || "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [position, setPosition] = useState("");
+  const [shift, setShift] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [address, setAddress] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
+  const [employeeId, setEmployeeId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [permissionLevel, setPermissionLevel] = useState("standard");
+
+  // Original employee data for reference
+  const [originalEmployee, setOriginalEmployee] = useState(null);
+
+  // Attendance calendar state
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Fetch employee data on mount
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      // Try to get from navigation state first (for quick loading)
+      const stateEmployee = location.state?.employee;
+
+      if (stateEmployee) {
+        populateForm(stateEmployee);
+        setOriginalEmployee(stateEmployee);
+        setIsLoading(false);
+      }
+
+      // Always fetch fresh data from API
+      try {
+        const employee = await employeeService.fetchEmployeeById(id);
+        populateForm(employee);
+        setOriginalEmployee(employee);
+      } catch (error) {
+        console.error("Error fetching employee:", error);
+        if (!stateEmployee) {
+          toast.error("Failed to load employee data");
+          navigate("/admin/employees");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmployee();
+    // NOTE: We intentionally only run on id changes. location.state and navigate 
+    // are stable references that don't need to trigger re-fetches.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Populate form with employee data
+  const populateForm = (employee) => {
+    const nameParts = employee.name?.split(" ") || [];
+    setFirstName(nameParts[0] || "");
+    setLastName(nameParts.slice(1).join(" ") || "");
+    setEmail(employee.email || "");
+    setPhone(employee.phone || "");
+    setPosition(employee.position || "");
+    setShift(employee.shift || "09:00 AM - 05:00 PM");
+    setIsActive(employee.isActive !== false);
+    setAddress(employee.address || "");
+    setProfilePhoto(employee.avatar || null);
+    setEmployeeId(employee.employeeId || "");
+    setStartDate(employee.startDate ? new Date(employee.startDate).toISOString().split("T")[0] : "");
+    setEmergencyContactName(employee.emergencyContactName || "");
+    setEmergencyContactPhone(employee.emergencyContactPhone || "");
+    setPermissionLevel(employee.permissionLevel || "standard");
+  };
 
   // Handle photo upload
   const handlePhotoUpload = (e) => {
@@ -69,24 +128,61 @@ export default function EditEmployee() {
     setProfilePhoto(URL.createObjectURL(file));
   };
 
-  const handleSave = () => {
-    const updatedEmployee = {
-      id,
-      name: `${firstName} ${lastName}`,
-      email,
-      phone,
-      role: jobRole,
-      status: employmentStatus,
-      address,
-    };
-    console.log("Saving employee:", updatedEmployee);
-    // TODO: Call API to update employee
-    navigate("/admin/employees");
+  // Handle save
+  const handleSave = async () => {
+    // Validate required fields
+    if (!firstName || !lastName || !email || !phone || !position) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const updatedEmployee = {
+        name: `${firstName} ${lastName}`,
+        email,
+        phone,
+        position,
+        shift,
+        isActive,
+        address,
+        avatar: profilePhoto || "",
+        emergencyContactName,
+        emergencyContactPhone,
+        permissionLevel,
+      };
+
+      await employeeService.updateEmployee(id, updatedEmployee);
+      toast.success("Employee updated successfully!");
+      navigate("/admin/employees");
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      const errorMessage = error.response?.data?.message || "Failed to update employee";
+      toast.error(errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
     navigate("/admin/employees");
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <>
+        <AdminSidebar />
+        <div className="flex-1 bg-gray-50 min-h-screen flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+            <span className="text-gray-600">Loading employee data...</span>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -119,10 +215,14 @@ export default function EditEmployee() {
               </div>
             </div>
 
-            {/* View History Button */}
-            <Button variant="outline" className="gap-2">
-              <History className="h-4 w-4" />
-              View History
+            {/* View Attendance Button */}
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setCalendarOpen(true)}
+            >
+              <CalendarDays className="h-4 w-4" />
+              View Attendance
             </Button>
           </div>
         </header>
@@ -138,8 +238,8 @@ export default function EditEmployee() {
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={profilePhoto} />
                     <AvatarFallback className="bg-orange-100 text-orange-700 text-2xl font-semibold">
-                      {firstName[0]}
-                      {lastName[0]}
+                      {firstName[0] || ""}
+                      {lastName[0] || ""}
                     </AvatarFallback>
                   </Avatar>
                   <button
@@ -163,19 +263,21 @@ export default function EditEmployee() {
                     <h2 className="text-xl font-bold text-gray-900">
                       {firstName} {lastName}
                     </h2>
-                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                      Active
+                    <Badge className={isActive ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700 hover:bg-red-100"}>
+                      {isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Briefcase className="h-4 w-4" />
-                      <span>ID: {employeeData.employeeId}</span>
+                      <span>ID: {employeeId}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span>📅</span>
-                      <span>Joined: {employeeData.joinDate}</span>
-                    </div>
+                    {startDate && (
+                      <div className="flex items-center gap-1">
+                        <span>📅</span>
+                        <span>Joined: {new Date(startDate).toLocaleDateString()}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -198,7 +300,7 @@ export default function EditEmployee() {
                 {/* First Name */}
                 <div>
                   <Label htmlFor="firstName" className="text-sm font-medium">
-                    First Name
+                    First Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="firstName"
@@ -211,7 +313,7 @@ export default function EditEmployee() {
                 {/* Last Name */}
                 <div>
                   <Label htmlFor="lastName" className="text-sm font-medium">
-                    Last Name
+                    Last Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="lastName"
@@ -224,7 +326,7 @@ export default function EditEmployee() {
                 {/* Email Address */}
                 <div>
                   <Label htmlFor="email" className="text-sm font-medium">
-                    Email Address
+                    Email Address <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative mt-1">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -241,7 +343,7 @@ export default function EditEmployee() {
                 {/* Phone Number */}
                 <div>
                   <Label htmlFor="phone" className="text-sm font-medium">
-                    Phone Number
+                    Phone Number <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative mt-1">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -271,23 +373,43 @@ export default function EditEmployee() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                {/* Job Role */}
+                {/* Position */}
                 <div>
-                  <Label htmlFor="jobRole" className="text-sm font-medium">
-                    Job Role
+                  <Label htmlFor="position" className="text-sm font-medium">
+                    Position <span className="text-red-500">*</span>
                   </Label>
-                  <Select value={jobRole} onValueChange={setJobRole}>
+                  <Select value={position} onValueChange={setPosition}>
                     <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select role" />
+                      <SelectValue placeholder="Select position" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Shift Supervisor">Shift Supervisor</SelectItem>
                       <SelectItem value="Head Chef">Head Chef</SelectItem>
                       <SelectItem value="Sous Chef">Sous Chef</SelectItem>
                       <SelectItem value="Line Cook">Line Cook</SelectItem>
                       <SelectItem value="Cashier">Cashier</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="Inventory Manager">Inventory Manager</SelectItem>
                       <SelectItem value="Server">Server</SelectItem>
-                      <SelectItem value="Inventory Mgr">Inventory Manager</SelectItem>
+                      <SelectItem value="Cleaner">Cleaner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Shift */}
+                <div>
+                  <Label htmlFor="shift" className="text-sm font-medium">
+                    Shift Time
+                  </Label>
+                  <Select value={shift} onValueChange={setShift}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select shift" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="09:00 AM - 05:00 PM">09:00 AM - 05:00 PM</SelectItem>
+                      <SelectItem value="08:00 AM - 04:00 PM">08:00 AM - 04:00 PM</SelectItem>
+                      <SelectItem value="11:00 AM - 07:00 PM">11:00 AM - 07:00 PM</SelectItem>
+                      <SelectItem value="02:00 PM - 10:00 PM">02:00 PM - 10:00 PM</SelectItem>
+                      <SelectItem value="06:00 PM - 02:00 AM">06:00 PM - 02:00 AM</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -297,21 +419,40 @@ export default function EditEmployee() {
                   <Label htmlFor="status" className="text-sm font-medium">
                     Employment Status
                   </Label>
-                  <Select value={employmentStatus} onValueChange={setEmploymentStatus}>
+                  <Select
+                    value={isActive ? "active" : "inactive"}
+                    onValueChange={(val) => setIsActive(val === "active")}
+                  >
                     <SelectTrigger className="mt-1">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="On Leave">On Leave</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Permission Level */}
+                <div>
+                  <Label htmlFor="permissionLevel" className="text-sm font-medium">
+                    Permission Level
+                  </Label>
+                  <Select value={permissionLevel} onValueChange={setPermissionLevel}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select permission" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="standard">Standard</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="viewer">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               {/* Residential Address */}
-              <div>
+              <div className="mb-6">
                 <Label htmlFor="address" className="text-sm font-medium">
                   Residential Address
                 </Label>
@@ -326,6 +467,36 @@ export default function EditEmployee() {
                   />
                 </div>
               </div>
+
+              {/* Emergency Contact */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="emergencyName" className="text-sm font-medium">
+                    Emergency Contact Name
+                  </Label>
+                  <Input
+                    id="emergencyName"
+                    value={emergencyContactName}
+                    onChange={(e) => setEmergencyContactName(e.target.value)}
+                    className="mt-1"
+                    placeholder="Full Name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="emergencyPhone" className="text-sm font-medium">
+                    Emergency Phone
+                  </Label>
+                  <Input
+                    id="emergencyPhone"
+                    type="tel"
+                    value={emergencyContactPhone}
+                    onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                    className="mt-1"
+                    placeholder="+1 (555) 999-9999"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -334,6 +505,7 @@ export default function EditEmployee() {
             <Button
               variant="outline"
               onClick={handleCancel}
+              disabled={isSaving}
               className="gap-2"
             >
               <X className="h-4 w-4" />
@@ -341,14 +513,31 @@ export default function EditEmployee() {
             </Button>
             <Button
               onClick={handleSave}
+              disabled={isSaving}
               className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
             >
-              <Save className="h-4 w-4" />
-              Save Changes
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Save Changes
+                </>
+              )}
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Attendance Calendar Modal */}
+      <AttendanceCalendar
+        employee={originalEmployee}
+        isOpen={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+      />
     </>
   );
 }

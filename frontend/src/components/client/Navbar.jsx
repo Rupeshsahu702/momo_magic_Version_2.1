@@ -1,10 +1,12 @@
-import React, { useState } from "react";
-import { ShoppingCart, User, Menu, X } from "lucide-react";
+import React, { useState, useContext } from "react";
+import { ShoppingCart, User, Menu, X, Receipt } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
+import CustomerAuthContext from "@/context/CustomerAuthContext";
 
 const Navbar = () => {
   const { getTotalItems } = useCart();
+  const { customer, isAuthenticated } = useContext(CustomerAuthContext);
   const totalItems = getTotalItems();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -50,6 +52,11 @@ const Navbar = () => {
               Orders
             </button>
           </Link>
+          <Link to="/mybill">
+            <button className="font-semibold text-[#111827] transition-colors hover:text-[#ff7a3c]">
+              Bill
+            </button>
+          </Link>
           <Link to="/contact">
             <button className="font-semibold text-[#111827] transition-colors hover:text-[#ff7a3c]">
               Contact
@@ -71,9 +78,15 @@ const Navbar = () => {
                 )}
               </button>
             </Link>
-            <button className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f7] text-[#111827] transition-colors hover:bg-[#ff7a3c] hover:text-white">
-              <User size={18} />
-            </button>
+            <Link to="/profile">
+              <button className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f4f5f7] text-[#111827] transition-colors hover:bg-[#ff7a3c] hover:text-white">
+                {isAuthenticated && customer?.name ? (
+                  <span className="text-sm font-bold">{customer.name.charAt(0).toUpperCase()}</span>
+                ) : (
+                  <User size={18} />
+                )}
+              </button>
+            </Link>
           </div>
 
           {/* Mobile: only profile icon visible on right */}
@@ -89,9 +102,15 @@ const Navbar = () => {
               </button>
             </Link>
 
-            <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f5f7] text-[#111827] transition-colors hover:bg-[#ff7a3c] hover:text-white" aria-label="Open profile">
-              <User size={20} />
-            </button>
+            <Link to="/profile">
+              <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f4f5f7] text-[#111827] transition-colors hover:bg-[#ff7a3c] hover:text-white" aria-label="Open profile">
+                {isAuthenticated && customer?.name ? (
+                  <span className="text-base font-bold">{customer.name.charAt(0).toUpperCase()}</span>
+                ) : (
+                  <User size={20} />
+                )}
+              </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -108,6 +127,12 @@ const Navbar = () => {
             </Link>
             <Link to="/myorder" onClick={() => setMenuOpen(false)}>
               <button className="w-full text-left py-3 text-lg font-semibold text-[#111827] hover:text-[#ff7a3c]">Orders</button>
+            </Link>
+            <Link to="/mybill" onClick={() => setMenuOpen(false)}>
+              <button className="w-full flex items-center gap-3 py-3 text-lg font-semibold text-[#111827] hover:text-[#ff7a3c]">
+                <Receipt size={20} />
+                <span>Bill</span>
+              </button>
             </Link>
             <Link to="/contact" onClick={() => setMenuOpen(false)}>
               <button className="w-full text-left py-3 text-lg font-semibold text-[#111827] hover:text-[#ff7a3c]">Contact</button>
