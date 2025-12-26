@@ -1,7 +1,12 @@
 # Branch Merge Status
 
 ## Summary
-The ayush branch has been successfully merged into the main branch locally. All branches have been updated with the changes from ayush.
+The ayush branch has been successfully merged into the main branch locally. This PR (copilot/update-all-branches) contains the merged result and will update the remote main branch when merged.
+
+## Important: How This Works
+- This PR branch includes a merge of the local main branch (which contains ayush merged into it)
+- When you merge this PR into the remote main branch, it will effectively merge ayush into main
+- The test_deploy branch has also been updated locally and needs to be pushed separately
 
 ## Changes Completed
 
@@ -38,14 +43,48 @@ The merge brought in comprehensive updates including:
 - Authentication and customer management features
 - And many more improvements
 
-## Next Steps
-Since direct push to remote branches requires GitHub credentials that are not available in this environment, the following actions are recommended:
+## Next Steps to Complete the Update
 
-1. This PR (copilot/update-all-branches) can be merged to main via GitHub's web interface
-2. The test_deploy branch will need to be updated either:
-   - By creating a separate PR to update test_deploy
-   - Or by manually pushing the local test_deploy branch if you have push access
-   - Or by fast-forwarding test_deploy to main after this PR is merged
+### Option 1: Merge via Pull Request (Recommended)
+1. **Merge this PR** (copilot/update-all-branches) into main via GitHub's web interface
+   - This will update the main branch with all changes from ayush
+2. **Update test_deploy** branch:
+   - Create another PR from main to test_deploy
+   - Or use GitHub CLI: `gh pr create --base test_deploy --head main --title "Update test_deploy from main"`
+
+### Option 2: Fast-forward test_deploy after merging this PR
+After merging this PR to main, you can update test_deploy to match main:
+
+```bash
+# Clone the repository
+git clone https://github.com/Deepakscripts/momo_magic_Version_2.git
+cd momo_magic_Version_2
+
+# Checkout test_deploy
+git checkout test_deploy
+
+# Merge main into test_deploy
+git merge main --ff-only
+
+# Push to remote
+git push origin test_deploy
+```
+
+Or using GitHub CLI:
+```bash
+gh repo clone Deepakscripts/momo_magic_Version_2
+cd momo_magic_Version_2
+git checkout test_deploy
+git merge main --ff-only
+git push origin test_deploy
+```
+
+### Option 3: Using the GitHub Web Interface
+1. Go to the repository on GitHub
+2. Navigate to "Pull requests"
+3. Create a new pull request from `copilot/update-all-branches` to `main`
+4. Review and merge the pull request
+5. Repeat for `main` to `test_deploy` if needed
 
 ## Verification Commands
 To verify the branch states locally:
