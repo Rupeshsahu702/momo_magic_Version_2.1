@@ -412,7 +412,7 @@ export default function MenuManagement() {
 
           {/* Table */}
           {!isLoading && !error && filteredItems.length > 0 && (
-            <div className="bg-white rounded-lg border">
+            <div className="bg-white rounded-lg border overflow-visible">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-gray-50">
@@ -441,7 +441,7 @@ export default function MenuManagement() {
                 </TableHeader>
                 <TableBody>
                   {filteredItems.map((item) => (
-                    <TableRow key={item._id} className="hover:bg-gray-50">
+                    <TableRow key={item._id} className="hover:bg-gray-50 overflow-visible">
                       <TableCell>
                         <Checkbox
                           checked={selectedItems.includes(item._id)}
@@ -505,7 +505,7 @@ export default function MenuManagement() {
                       </TableCell>
 
                       <TableCell className="text-gray-600">{formatDate(item.updatedAt)}</TableCell>
-                      <TableCell className="text-right relative">
+                      <TableCell className="text-right relative overflow-visible">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -518,12 +518,12 @@ export default function MenuManagement() {
                           <>
                             {/* Backdrop overlay */}
                             <div
-                              className="fixed inset-0 z-10"
+                              className="fixed inset-0 z-[9998]"
                               onClick={() => setActiveMenuId(null)}
                             />
 
                             {/* Popup menu */}
-                            <div className="absolute right-0 top-10 w-44 rounded-lg bg-gray-900 shadow-2xl border border-gray-700 z-20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <div className="absolute right-0 top-10 w-44 rounded-lg bg-gray-900 shadow-2xl border border-gray-700 z-[9999] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                               {/* Hide */}
                               <button
                                 type="button"

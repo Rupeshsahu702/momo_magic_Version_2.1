@@ -109,6 +109,11 @@ export default function PaymentsManagement() {
                 className: "bg-orange-100 text-orange-700 hover:bg-orange-100",
                 icon: Clock,
             },
+            paid: {
+                label: "Paid",
+                className: "bg-green-100 text-green-700 hover:bg-green-100",
+                icon: CheckCircle2,
+            },
             unpaid: {
                 label: "Unpaid",
                 className: "bg-red-100 text-red-700 hover:bg-red-100",
@@ -180,11 +185,10 @@ export default function PaymentsManagement() {
                     <div className="flex gap-2 mb-6 border-b border-gray-200">
                         <button
                             onClick={() => setActiveTab('pending')}
-                            className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
-                                activeTab === 'pending'
+                            className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'pending'
                                     ? 'border-green-500 text-green-600'
                                     : 'border-transparent text-gray-600 hover:text-gray-900'
-                            }`}
+                                }`}
                         >
                             <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
@@ -193,11 +197,10 @@ export default function PaymentsManagement() {
                         </button>
                         <button
                             onClick={() => setActiveTab('all')}
-                            className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${
-                                activeTab === 'all'
+                            className={`px-4 py-3 font-semibold text-sm transition-colors border-b-2 ${activeTab === 'all'
                                     ? 'border-green-500 text-green-600'
                                     : 'border-transparent text-gray-600 hover:text-gray-900'
-                            }`}
+                                }`}
                         >
                             <div className="flex items-center gap-2">
                                 <History className="h-4 w-4" />
