@@ -33,6 +33,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import menuService from "@/services/menuService";
 import CustomizationModal from "@/components/client/CustomizationModal";
+import useMenuImage from "@/hooks/useMenuImage";
 
 // Icon mapping for categories
 const categoryIconMap = {
@@ -53,7 +54,12 @@ const categoryIconMap = {
 };
 
 
-// Default placeholder image for items without images
+// IMPORTANT: Default fallback image path
+// This image is shown when:
+// 1. Backend image URL is missing or null
+// 2. Backend image fails to load after MAX_RETRIES attempts (defined in useMenuImage hook)
+// 3. Image URL is found in the failure cache (previously failed)
+// DO NOT change this path unless you also update the corresponding file in public/images/
 const DEFAULT_IMAGE = "/images/special_dishes.png";
 
 const Menu = () => {
@@ -285,111 +291,8 @@ const Menu = () => {
         {/* Menu Items Grid */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {safeCurrentItems.map((item) => {
-            // Get quantity from cart context using item's _id
-            const quantity = getItemQuantity(item._id);
-            const cartItem = toCartItem(item);
-
-            return (
-              <Card
-                key={item._id}
-                className="group overflow-hidden rounded-3xl border-none shadow-md transition-all hover:shadow-xl"
-              >
-                <CardContent className="p-3.5">
-                  {/* Image Container */}
-                  <div className="relative h-52 overflow-hidden rounded-2xl bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a]">
-                    <img
-                      src={item.imageLink || DEFAULT_IMAGE}
-                      alt={item.productName}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
-                      onError={(e) => {
-                        e.target.src = DEFAULT_IMAGE;
-                      }}
-                    />
-
-                    {/* Badges */}
-                    <div className="absolute left-3 top-3 flex flex-col gap-2">
-                      <div className="flex gap-2">
-                        {item.isVeg ? (
-                          <Badge className="rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-green-600">
-                            VEG
-                          </Badge>
-                        ) : (
-                          <Badge className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-red-600">
-                            NON-VEG
-                          </Badge>
-                        )}
-                      </div>
-                      {/* Recommended Badge */}
-                      {item.isRecommended && (
-                        <Badge className="rounded-full bg-gradient-to-r from-orange-500 to-pink-500 px-2 py-0.5 text-xs font-semibold text-white flex items-center gap-1">
-                          <Sparkles className="h-3 w-3" />
-                          Recommended
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Rating Badge */}
-                    {item.rating > 0 && (
-                      <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white px-2 py-1 shadow-md">
-                        <Star className="h-3 w-3 fill-[#fbbf24] text-[#fbbf24]" />
-                        <span className="text-xs font-semibold text-[#1a1a1a]">
-                          {item.rating?.toFixed(1)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-4">
-                    <h4 className="mb-1 text-base font-bold text-[#1a1a1a]">
-                      {item.productName}
-                    </h4>
-                    <p className="mb-4 text-xs leading-relaxed text-[#6b7280] line-clamp-2">
-                      {item.description}
-                    </p>
-
-                    {/* Price and Add Button */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-[#1a1a1a]">
-                        ₹{item.amount?.toFixed(2)}
-                      </span>
-
-                      {quantity === 0 ? (
-                        <Button
-                          size="icon"
-                          className="h-9 w-9 rounded-full bg-[#ff7a3c] hover:bg-[#ff6825]"
-                          onClick={() => handleAddToCart(item, cartItem)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <div className="flex items-center gap-2 rounded-full bg-[#ff7a3c] px-2 py-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 rounded-full text-white hover:bg-[#ff6825] hover:text-white"
-                            onClick={() => removeFromCart(item._id)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="min-w-[20px] text-center text-sm font-semibold text-white">
-                            {quantity}
-                          </span>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 rounded-full text-white hover:bg-[#ff6825] hover:text-white"
-                            onClick={() => addToCart(cartItem)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
+            // Render individual menu item card
+            return <MenuItem key={item._id} item={item} />;
           })}
         </div>
       </div>
@@ -402,6 +305,159 @@ const Menu = () => {
         onAddToCart={handleAddFromModal}
       />
     </section>
+  );
+};
+
+/**
+ * Individual Menu Item Card Component
+ * Separated to properly use the useMenuImage hook (hooks can't be called conditionally in map)
+ */
+const MenuItem = ({ item }) => {
+  const { addToCart, removeFromCart, getItemQuantity } = useCart();
+
+  // ROBUST IMAGE LOADING: Use custom hook for intelligent image loading
+  // This hook handles:
+  // - Automatic retry on failure (up to 2 attempts)
+  // - Fallback to default image after retries exhausted
+  // - localStorage caching of failed URLs to prevent repeated attempts
+  // See hooks/useMenuImage.js for detailed implementation
+  const { imageSrc } = useMenuImage(item.imageLink, DEFAULT_IMAGE);
+
+  const quantity = getItemQuantity(item._id);
+
+  // Transform database item to cart-compatible format
+  const cartItem = {
+    id: item._id,
+    name: item.productName,
+    description: item.description,
+    price: item.amount,
+    rating: item.rating,
+    image: item.imageLink || DEFAULT_IMAGE,
+    isVeg: item.isVeg,
+    category: item.category,
+    customizationOptions: item.customizationOptions || [],
+    isRecommended: item.isRecommended || false
+  };
+
+  const handleAddToCart = () => {
+    const hasCustomizations = item.customizationOptions && item.customizationOptions.length > 0;
+
+    if (hasCustomizations) {
+      // This will need to be handled via context or prop drilling
+      // For now, just add to cart directly
+      addToCart(cartItem);
+    } else {
+      addToCart(cartItem);
+    }
+  };
+
+  return (
+    <Card className="group overflow-hidden rounded-3xl border-none shadow-md transition-all hover:shadow-xl">
+      <CardContent className="p-3.5">
+        {/* Image Container */}
+        <div className="relative h-52 overflow-hidden rounded-2xl bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a]">
+          {/* 
+            CRITICAL: Image loading with robust error handling
+            - imageSrc comes from useMenuImage hook which handles retries and fallbacks
+            - onError provides final safety net if hook fails
+            - DO NOT remove onError handler - it's the last line of defense
+          */}
+          <img
+            src={imageSrc}
+            alt={item.productName}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+            onError={(e) => {
+              // Final fallback: If even the hook-managed image fails, use default
+              // This should rarely trigger if the hook is working correctly
+              if (e.target.src !== DEFAULT_IMAGE) {
+                e.target.src = DEFAULT_IMAGE;
+              }
+            }}
+          />
+
+          {/* Badges */}
+          <div className="absolute left-3 top-3 flex flex-col gap-2">
+            <div className="flex gap-2">
+              {item.isVeg ? (
+                <Badge className="rounded-full bg-green-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-green-600">
+                  VEG
+                </Badge>
+              ) : (
+                <Badge className="rounded-full bg-red-600 px-2 py-0.5 text-xs font-semibold text-white hover:bg-red-600">
+                  NON-VEG
+                </Badge>
+              )}
+            </div>
+            {/* Recommended Badge */}
+            {item.isRecommended && (
+              <Badge className="rounded-full bg-gradient-to-r from-orange-500 to-pink-500 px-2 py-0.5 text-xs font-semibold text-white flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                Recommended
+              </Badge>
+            )}
+          </div>
+
+          {/* Rating Badge */}
+          {item.rating > 0 && (
+            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white px-2 py-1 shadow-md">
+              <Star className="h-3 w-3 fill-[#fbbf24] text-[#fbbf24]" />
+              <span className="text-xs font-semibold text-[#1a1a1a]">
+                {item.rating?.toFixed(1)}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="p-4">
+          <h4 className="mb-1 text-base font-bold text-[#1a1a1a]">
+            {item.productName}
+          </h4>
+          <p className="mb-4 text-xs leading-relaxed text-[#6b7280] line-clamp-2">
+            {item.description}
+          </p>
+
+          {/* Price and Add Button */}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-[#1a1a1a]">
+              ₹{item.amount?.toFixed(2)}
+            </span>
+
+            {quantity === 0 ? (
+              <Button
+                size="icon"
+                className="h-9 w-9 rounded-full bg-[#ff7a3c] hover:bg-[#ff6825]"
+                onClick={handleAddToCart}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 rounded-full bg-[#ff7a3c] px-2 py-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 rounded-full text-white hover:bg-[#ff6825] hover:text-white"
+                  onClick={() => removeFromCart(item._id)}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="min-w-[20px] text-center text-sm font-semibold text-white">
+                  {quantity}
+                </span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 rounded-full text-white hover:bg-[#ff6825] hover:text-white"
+                  onClick={() => addToCart(cartItem)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -65,7 +65,7 @@ export function AdminSidebar() {
                 M
               </AvatarFallback>
             </Avatar>
-            <span className="font-semibold text-lg">Momo Magic</span>
+            <span className="font-semibold text-lg">Momo Magic Cafe</span>
           </div>
 
           {/* Close button for mobile */}

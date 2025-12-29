@@ -1,0 +1,32 @@
+[
+  {
+    "productName": "Blue Lagoon",
+    "imageFilename": "blue-lagoon.jpg",
+    "success": false,
+    "error": "Upload failed: Request failed with status code 404"
+  },
+  {
+    "productName": "Brownie Shake",
+    "imageFilename": "brownie-shake.jpg",
+    "success": false,
+    "error": "Upload failed: Request failed with status code 404"
+  },
+  {
+    "productName": "Bubble Gum Mojito",
+    "imageFilename": "bubble-gum-mojito.jpg",
+    "success": false,
+    "error": "Upload failed: Request failed with status code 404"
+  },
+  {
+    "productName": "Butter Scotch Shake",
+    "imageFilename": "butter-scotch-shake.jpg",
+    "success": false,
+    "error": "Upload failed: Request failed with status code 404"
+  },
+  {
+    "productName": "Chocolate Shake",
+    "imageFilename": "chocolate-shake.jpg",
+    "success": false,
+    "error": "Upload failed: Request failed with status code 404"
+  }
+]

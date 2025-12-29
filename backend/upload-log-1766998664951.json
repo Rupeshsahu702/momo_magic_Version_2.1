@@ -1,0 +1,37 @@
+[
+  {
+    "productName": "Blue Lagoon",
+    "imageFilename": "blue-lagoon.jpg",
+    "success": true,
+    "imageUrl": "https://pub-bbae1a5ed6fb40cc9699c0d7cc192511.r2.dev/1766998655888-wfudn0xuk8a.jpg",
+    "menuItem": "Blue Lagoon"
+  },
+  {
+    "productName": "Brownie Shake",
+    "imageFilename": "brownie-shake.jpg",
+    "success": true,
+    "imageUrl": "https://pub-bbae1a5ed6fb40cc9699c0d7cc192511.r2.dev/1766998658313-ft3mt8p7g78.jpg",
+    "menuItem": "Brownie Shake"
+  },
+  {
+    "productName": "Bubble Gum Mojito",
+    "imageFilename": "bubble-gum-mojito.jpg",
+    "success": true,
+    "imageUrl": "https://pub-bbae1a5ed6fb40cc9699c0d7cc192511.r2.dev/1766998660294-0gsuh4massfa.jpg",
+    "menuItem": "Bubble Gum Mojito"
+  },
+  {
+    "productName": "Butter Scotch Shake",
+    "imageFilename": "butter-scotch-shake.jpg",
+    "success": true,
+    "imageUrl": "https://pub-bbae1a5ed6fb40cc9699c0d7cc192511.r2.dev/1766998661830-22cxshkpnv6.jpg",
+    "menuItem": "Butter Scotch Shake"
+  },
+  {
+    "productName": "Chocolate Shake",
+    "imageFilename": "chocolate-shake.jpg",
+    "success": true,
+    "imageUrl": "https://pub-bbae1a5ed6fb40cc9699c0d7cc192511.r2.dev/1766998663417-260p8tv965x.jpg",
+    "menuItem": "Chocolate Shake"
+  }
+]
