@@ -89,64 +89,9 @@ export const CartProvider = ({ children }) => {
   // Track if Water Bottle auto-add has been attempted this session
   const waterBottleInitRef = useRef(false);
 
-  // Auto-add Water Bottle on cart initialization (only for fresh carts)
-  useEffect(() => {
-    const initializeWaterBottle = async () => {
-      // Only run once per component mount
-      if (waterBottleInitRef.current) return;
-      waterBottleInitRef.current = true;
+  // Auto-add logic removed as per user request for better UX
+  // Water bottle will be suggested in the cart instead
 
-      // Check if Water Bottle was manually removed this session
-      const wasRemoved = sessionStorage.getItem(WATER_BOTTLE_REMOVED_KEY) === 'true';
-      if (wasRemoved) {
-        console.log('🚰 Water Bottle was previously removed, skipping auto-add');
-        return;
-      }
-
-      // Check if cart already has Water Bottle
-      const savedCart = localStorage.getItem("momoMagicCart");
-      const currentCart = savedCart ? JSON.parse(savedCart) : [];
-      const hasWaterBottle = currentCart.some(item => item.name === WATER_BOTTLE_PRODUCT_NAME);
-
-      if (hasWaterBottle) {
-        console.log('🚰 Water Bottle already in cart');
-        return;
-      }
-
-      // Cart is empty or doesn't have Water Bottle - fetch and add it
-      try {
-        const waterBottle = await menuService.fetchMenuItemByName(WATER_BOTTLE_PRODUCT_NAME);
-        if (waterBottle && waterBottle.availability) {
-          console.log('🚰 Auto-adding Water Bottle to cart:', waterBottle._id);
-          setCartItems(prev => {
-            // Double-check it's not already there
-            if (prev.some(item => item.name === WATER_BOTTLE_PRODUCT_NAME)) {
-              return prev;
-            }
-            return [
-              ...prev,
-              {
-                id: waterBottle._id,
-                name: waterBottle.productName,
-                description: waterBottle.description,
-                price: waterBottle.amount,
-                quantity: 1,
-                image: waterBottle.imageLink || '/images/special_dishes.png',
-                isVeg: waterBottle.isVeg,
-                isAutoAdded: true  // Flag to identify auto-added items
-              }
-            ];
-          });
-        } else {
-          console.log('🚰 Water Bottle not available or not found');
-        }
-      } catch (error) {
-        console.error('Error auto-adding Water Bottle:', error);
-      }
-    };
-
-    initializeWaterBottle();
-  }, []); // Run once on mount
 
   // Get total items in cart
   const getTotalItems = () => {

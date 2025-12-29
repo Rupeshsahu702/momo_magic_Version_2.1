@@ -1,16 +1,17 @@
 // MyCart.jsx
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Plus, Minus, Trash2, ArrowRight, Tag, LogIn } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, ArrowRight, Tag, LogIn, Droplets } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import CustomerAuthContext from "@/context/CustomerAuthContext";
 import OrderConfirmation from "@/components/client/OrderConfirmation";
 import CustomerLoginModal from "@/components/client/CustomerLoginModal";
 import { toast } from "sonner";
+import menuService from "@/services/menuService";
 
 const MyCart = () => {
   const {
@@ -28,9 +29,39 @@ const MyCart = () => {
   const [promoCode, setPromoCode] = useState("");
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [waterBottleItem, setWaterBottleItem] = useState(null);
 
   const { subtotal, tax, total } = calculateTotals();
   const totalItems = getTotalItems();
+
+  useEffect(() => {
+    const fetchWaterBottle = async () => {
+      try {
+        const item = await menuService.fetchMenuItemByName("Water Bottle");
+        if (item && item.availability) {
+          setWaterBottleItem(item);
+        }
+      } catch (error) {
+        console.error("Failed to fetch water bottle", error);
+      }
+    };
+    fetchWaterBottle();
+  }, []);
+
+  const handleAddWaterBottle = () => {
+    if (waterBottleItem) {
+      addToCart({
+        id: waterBottleItem._id,
+        name: waterBottleItem.productName,
+        description: waterBottleItem.description,
+        price: waterBottleItem.amount,
+        quantity: 1,
+        image: waterBottleItem.imageLink || '/images/water_bottle.png',
+        isVeg: waterBottleItem.isVeg,
+      });
+      toast.success("Water Bottle added to cart!");
+    }
+  };
 
   const handleApplyPromo = () => {
     console.log("Applying promo code:", promoCode);
@@ -175,6 +206,33 @@ const MyCart = () => {
                     </Card>
                   ))}
                 </div>
+
+                {/* Water Bottle Suggestion */}
+                {waterBottleItem && !cartItems.some(item => item.name === "Water Bottle") && (
+                  <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                          <Droplets className="h-6 w-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-[#1a1a1a]">Add a Water Bottle?</h3>
+                          <p className="text-sm text-[#6b7280]">Stay hydrated with your meal</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-bold text-[#1a1a1a]">₹{waterBottleItem.amount}</span>
+                        <Button 
+                          size="sm" 
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          onClick={handleAddWaterBottle}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Order Summary Section */}

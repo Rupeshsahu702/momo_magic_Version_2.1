@@ -55,283 +55,15 @@ const categoryIconMap = {
   "Combos": Grid3x3,
 };
 
-// Menu data organized by category
-const menuData = {
-  Steamed: [
-    {
-      id: 1,
-      name: "Chicken Cheese Momo",
-      description: "Juicy chicken filling topped with melted mozzarella.",
-      price: 5.99,
-      rating: 4.8,
-      image: steam1,
-      isVeg: false,
-    },
-    {
-      id: 2,
-      name: "Spicy Veg Momo",
-      description: "Garden fresh vegetables with our signature spicy sauce.",
-      price: 4.99,
-      rating: 4.6,
-      image: steam2,
-      isVeg: true,
-    },
-    {
-      id: 3,
-      name: "Fried Chicken Momo",
-      description: "Crispy on the outside, juicy on the inside.",
-      price: 6.49,
-      rating: 4.7,
-      image: steam3,
-      isVeg: false,
-    },
-    {
-      id: 4,
-      name: "Paneer Chili Momo",
-      description: "Cottage cheese momos wok-tossed in chili garlic sauce.",
-      price: 5.49,
-      rating: 4.6,
-      image: steam4,
-      isVeg: true,
-    },
-  ],
-  Fried: [
-    {
-      id: 5,
-      name: "Crispy Chicken Momo",
-      description: "Golden fried chicken momos with spicy dipping sauce.",
-      price: 6.99,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-    {
-      id: 6,
-      name: "Fried Paneer Momo",
-      description: "Crispy fried paneer momos with mint chutney.",
-      price: 5.99,
-      rating: 4.7,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 7,
-      name: "Spicy Fried Veg",
-      description: "Crispy vegetable momos tossed in schezwan sauce.",
-      price: 5.49,
-      rating: 4.8,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 8,
-      name: "Fried Buff Momo",
-      description: "Traditional buff momos deep fried to perfection.",
-      price: 7.49,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-  ],
-  Chili: [
-    {
-      id: 9,
-      name: "Chicken Chili Momo",
-      description: "Steamed momos wok-tossed in spicy chili sauce.",
-      price: 7.99,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-    {
-      id: 10,
-      name: "Veg Chili Momo",
-      description: "Vegetable momos in Indo-Chinese chili gravy.",
-      price: 6.49,
-      rating: 4.6,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 11,
-      name: "Paneer Chili Garlic",
-      description: "Paneer momos in spicy garlic chili sauce.",
-      price: 6.99,
-      rating: 4.8,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 12,
-      name: "Schezwan Chicken Momo",
-      description: "Fiery schezwan sauce with tender chicken momos.",
-      price: 8.49,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-  ],
-  Burgers: [
-    {
-      id: 13,
-      name: "Momo Burger",
-      description: "Fried momo patty with special sauce in sesame bun.",
-      price: 8.99,
-      rating: 4.7,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-    {
-      id: 14,
-      name: "Spicy Chicken Burger",
-      description: "Grilled chicken with jalapenos and cheese.",
-      price: 9.49,
-      rating: 4.8,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-    {
-      id: 15,
-      name: "Veg Momo Burger",
-      description: "Crispy veg momo patty with tangy sauces.",
-      price: 7.99,
-      rating: 4.6,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 16,
-      name: "Paneer Tikka Burger",
-      description: "Grilled paneer tikka with mint mayo.",
-      price: 8.49,
-      rating: 4.7,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-  ],
-  Shakes: [
-    {
-      id: 17,
-      name: "Mango Shake",
-      description: "Fresh mango blended with creamy milk.",
-      price: 4.99,
-      rating: 4.8,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 18,
-      name: "Chocolate Oreo Shake",
-      description: "Rich chocolate shake with crushed oreos.",
-      price: 5.49,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 19,
-      name: "Strawberry Shake",
-      description: "Fresh strawberries with vanilla ice cream.",
-      price: 5.29,
-      rating: 4.7,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 20,
-      name: "Cold Coffee",
-      description: "Chilled coffee with ice cream and chocolate syrup.",
-      price: 4.79,
-      rating: 4.8,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-  ],
-  Beverages: [
-    {
-      id: 21,
-      name: "Fresh Lime Soda",
-      description: "Refreshing lime with soda and mint.",
-      price: 2.99,
-      rating: 4.6,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 22,
-      name: "Masala Chai",
-      description: "Traditional Indian spiced tea.",
-      price: 2.49,
-      rating: 4.7,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 23,
-      name: "Iced Tea",
-      description: "Chilled tea with lemon and mint.",
-      price: 3.49,
-      rating: 4.5,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 24,
-      name: "Buttermilk",
-      description: "Spiced yogurt drink with curry leaves.",
-      price: 2.99,
-      rating: 4.6,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-  ],
-  Combos: [
-    {
-      id: 25,
-      name: "Momo Meal Deal",
-      description: "8 steamed momos + fries + soft drink.",
-      price: 12.99,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-    {
-      id: 26,
-      name: "Family Combo",
-      description: "16 momos (mixed) + 2 shakes + chili sauce.",
-      price: 24.99,
-      rating: 4.8,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-    {
-      id: 27,
-      name: "Veg Special Combo",
-      description: "12 veg momos + spring rolls + beverage.",
-      price: 15.99,
-      rating: 4.7,
-      image: "/images/special_dishes.png",
-      isVeg: true,
-    },
-    {
-      id: 28,
-      name: "Date Night Combo",
-      description: "10 momos + 2 burgers + 2 shakes.",
-      price: 22.99,
-      rating: 4.9,
-      image: "/images/special_dishes.png",
-      isVeg: false,
-    },
-  ],
-};
+// Menu data removed in favor of dynamic fetching
 
-// Note: Categories are now fetched dynamically from the backend
-// The static categories array has been removed
 
 const ExploreCategories = () => {
   const [selectedCategory, setSelectedCategory] = useState("Steamed");
   const [categories, setCategories] = useState([]);
+  const [items, setItems] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const { addToCart, removeFromCart, getItemQuantity } = useCart();
 
   // Fetch available categories on mount
@@ -349,13 +81,15 @@ const ExploreCategories = () => {
 
         setCategories(categoriesWithIcons);
 
-        // Set first category as selected if available
+        // Set first category as selected if available and none selected
         if (categoriesWithIcons.length > 0 && !selectedCategory) {
           setSelectedCategory(categoriesWithIcons[0].name);
+        } else if (categoriesWithIcons.length > 0 && !categoriesWithIcons.find(c => c.name === selectedCategory)) {
+             // If selected category is not in the list, select the first one
+             setSelectedCategory(categoriesWithIcons[0].name);
         }
       } catch (error) {
         console.error('Error loading categories:', error);
-        // Fallback to empty array on error
         setCategories([]);
       } finally {
         setIsLoadingCategories(false);
@@ -363,25 +97,45 @@ const ExploreCategories = () => {
     };
 
     loadCategories();
-  }, []); // Empty dependency array - fetch once on mount
+  }, []);
 
-  const getFilteredItems = () => {
-    if (selectedCategory === "All") {
-      return Object.values(menuData).flat();
-    } else if (selectedCategory === "Veg") {
-      return Object.values(menuData)
-        .flat()
-        .filter((item) => item.isVeg);
-    } else if (selectedCategory === "Non-Veg") {
-      return Object.values(menuData)
-        .flat()
-        .filter((item) => !item.isVeg);
-    } else {
-      return menuData[selectedCategory] || [];
-    }
-  };
+  // Fetch items when selected category changes
+  useEffect(() => {
+    const loadItems = async () => {
+      if (!selectedCategory) return;
 
-  const currentItems = getFilteredItems();
+      try {
+        setIsLoadingItems(true);
+        // Fetch items for the selected category
+        const filters = selectedCategory === "All" ? {} : { category: selectedCategory };
+        
+        const fetchedItems = await menuService.fetchAllMenuItems(filters);
+
+        // Map database items to component structure
+        const mappedItems = fetchedItems.map(item => ({
+            id: item._id, // IMPORTANT: Use _id from DB
+            name: item.productName,
+            description: item.description,
+            price: item.amount,
+            rating: item.rating || 0,
+            image: item.imageLink || "/images/special_dishes.png",
+            isVeg: item.isVeg,
+            // Preserve original item data if needed
+            originalItem: item
+        }));
+
+        setItems(mappedItems);
+      } catch (error) {
+        console.error('Error loading items:', error);
+        setItems([]);
+      } finally {
+        setIsLoadingItems(false);
+      }
+    };
+
+    loadItems();
+  }, [selectedCategory]);
+
 
   return (
     <section className="w-full bg-white px-4 py-16">
@@ -436,7 +190,7 @@ const ExploreCategories = () => {
                   ? "Delicious vegetarian options"
                   : selectedCategory === "Non-Veg"
                     ? "Non-vegetarian favorites"
-                    : "Top rated dishes from our kitchen"}
+                    : `${selectedCategory} dishes from our kitchen`}
             </p>
           </div>
           <Button
@@ -449,8 +203,17 @@ const ExploreCategories = () => {
         </div>
 
         {/* Menu Items Grid */}
+        {isLoadingItems ? (
+             <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-[#ff7a3c]" />
+             </div>
+        ) : items.length === 0 ? (
+            <div className="text-center py-12">
+                <p className="text-gray-500">No items found in this category.</p>
+            </div>
+        ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {currentItems.map((item) => {
+          {items.map((item) => {
             const quantity = getItemQuantity(item.id); // Get quantity from cart
 
             return (
@@ -465,6 +228,7 @@ const ExploreCategories = () => {
                       src={item.image}
                       alt={item.name}
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      onError={(e) => { e.target.src = "/images/special_dishes.png"; }}
                     />
 
                     {/* Badges */}
@@ -484,7 +248,7 @@ const ExploreCategories = () => {
                     <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white px-2 py-1 shadow-md">
                       <Star className="h-3 w-3 fill-[#fbbf24] text-[#fbbf24]" />
                       <span className="text-xs font-semibold text-[#1a1a1a]">
-                        {item.rating}
+                        {item.rating.toFixed(1)}
                       </span>
                     </div>
                   </div>
@@ -494,7 +258,7 @@ const ExploreCategories = () => {
                     <h4 className="mb-1 text-base font-bold text-[#1a1a1a]">
                       {item.name}
                     </h4>
-                    <p className="mb-4 text-xs leading-relaxed text-[#6b7280]">
+                    <p className="mb-4 text-xs leading-relaxed text-[#6b7280] line-clamp-2">
                       {item.description}
                     </p>
 
@@ -543,6 +307,7 @@ const ExploreCategories = () => {
             );
           })}
         </div>
+        )}
       </div>
     </section>
   );

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { X, UtensilsCrossed, CheckCircle2, Clock } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import heroImg from "@/assets/hero.png";
 
 const OrderConfirmation = ({ isOpen, onClose, onOrderPlaced }) => {
   const [step, setStep] = useState(1); // 1: Table Selection, 2: Success
@@ -98,7 +99,7 @@ const OrderConfirmation = ({ isOpen, onClose, onOrderPlaced }) => {
             {/* Hero Image */}
             <div className="relative h-40 overflow-hidden bg-gradient-to-br from-[#2c2c2c] to-[#1a1a1a]">
               <img
-                src="/api/placeholder/400/200"
+                src={heroImg}
                 alt="Momos"
                 className="h-full w-full object-cover opacity-60"
               />
@@ -106,7 +107,7 @@ const OrderConfirmation = ({ isOpen, onClose, onOrderPlaced }) => {
 
               {/* Title Overlay */}
               <div className="absolute bottom-6 left-6">
-                <h2 className="text-2xl font-bold text-white">Almost there!</h2>
+                <DialogTitle className="text-2xl font-bold text-white">Almost there!</DialogTitle>
                 <p className="text-sm text-white/80">
                   We're just one step away.
                 </p>

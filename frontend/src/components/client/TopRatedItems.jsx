@@ -192,7 +192,15 @@ const TopRatedItems = () => {
                                                             <Button
                                                                 size="icon"
                                                                 className="h-8 w-8 rounded-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-md"
-                                                                onClick={() => addToCart(item)}
+                                                                onClick={() => addToCart({
+                                                                    id: item._id,
+                                                                    name: item.productName,
+                                                                    description: item.description,
+                                                                    price: item.amount,
+                                                                    quantity: 1,
+                                                                    image: item.imageLink || '/images/special_dishes.png',
+                                                                    isVeg: item.isVeg
+                                                                })}
                                                             >
                                                                 <Plus className="h-4 w-4" />
                                                             </Button>
@@ -213,7 +221,15 @@ const TopRatedItems = () => {
                                                                     size="icon"
                                                                     variant="ghost"
                                                                     className="h-6 w-6 rounded-full text-white hover:bg-orange-700 hover:text-white"
-                                                                    onClick={() => addToCart(item)}
+                                                                    onClick={() => addToCart({
+                                                                        id: item._id,
+                                                                        name: item.productName,
+                                                                        description: item.description,
+                                                                        price: item.amount,
+                                                                        quantity: 1,
+                                                                        image: item.imageLink || '/images/special_dishes.png',
+                                                                        isVeg: item.isVeg
+                                                                    })}
                                                                 >
                                                                     <Plus className="h-3 w-3" />
                                                                 </Button>

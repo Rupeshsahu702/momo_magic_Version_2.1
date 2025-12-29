@@ -19,6 +19,9 @@ const DEFAULT_ESTIMATED_TIME = '15-20 mins';
 // Order Creation
 // ============================================================================
 
+const fs = require('fs');
+const path = require('path');
+
 /**
  * Create a new order and broadcast to admin clients.
  * @route POST /api/orders
@@ -98,6 +101,7 @@ const createOrder = async (request, response) => {
         }
 
         console.error('Error creating order:', error);
+        fs.appendFileSync(path.join(__dirname, '../error.log'), `${new Date().toISOString()} - Error creating order: ${error.message}\n${error.stack}\n`);
         console.error('Request body was:', JSON.stringify(request.body, null, 2));
         response.status(500).json({
             success: false,
